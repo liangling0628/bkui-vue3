@@ -27,13 +27,14 @@
 import ejs from 'ejs';
 import { appendFile, existsSync, lstatSync, mkdirSync, readdir, readFileSync, unlinkSync } from 'fs';
 import { join, parse, resolve } from 'path';
-import Svgo from 'svgo';
+import { optimize } from 'svgo';
 // @ts-ignore
 import svgpath from 'svgpath';
 import { promisify } from 'util';
 import * as xml2Js from 'xml-js';
 
 import shape2path from './shape2path';
+import svgoConfig from './svgo-config';
 const license = `/*
 * Tencent is pleased to support the open source community by making
 * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -79,132 +80,6 @@ export default <%=iconName%>;
 const indexTemplate = 'export { default as <%=iconName%> } from \'../icons/<%=fileName%>\';\n';
 const compileDirUrl = resolve(__dirname, '../src/svg');
 
-const cleaner = new Svgo({
-  multipass: true,
-  plugins: [
-    {
-      inlineStyles: {
-        onlyMatchedOnce: false,
-      },
-    },
-    {
-      cleanupAttrs: true,
-    },
-    {
-      removeDoctype: true,
-    },
-    {
-      removeXMLProcInst: true,
-    },
-    {
-      removeComments: true,
-    },
-    {
-      removeMetadata: true,
-    },
-    {
-      removeTitle: true,
-    },
-    {
-      removeDesc: true,
-    },
-    {
-      removeUselessDefs: true,
-    },
-    {
-      removeEditorsNSData: true,
-    },
-    {
-      removeEmptyAttrs: true,
-    },
-    {
-      removeHiddenElems: true,
-    },
-    {
-      removeEmptyText: true,
-    },
-    {
-      removeEmptyContainers: true,
-    },
-    {
-      removeViewBox: false,
-    },
-    {
-      cleanupEnableBackground: true,
-    },
-    {
-      convertStyleToAttrs: true,
-    },
-    {
-      convertColors: true,
-    },
-    {
-      convertPathData: false,
-    },
-    {
-      convertTransform: true,
-    },
-    {
-      removeUnknownsAndDefaults: true,
-    },
-    {
-      removeNonInheritableGroupAttrs: true,
-    },
-    {
-      removeUselessStrokeAndFill: true,
-    },
-    {
-      removeUnusedNS: true,
-    },
-    {
-      cleanupIDs: true,
-    },
-    {
-      cleanupNumericValues: true,
-    },
-    {
-      moveElemsAttrsToGroup: true,
-    },
-    {
-      moveGroupAttrsToElems: true,
-    },
-    {
-      removeRasterImages: false,
-    },
-    {
-      mergePaths: false,
-    },
-    {
-      convertShapeToPath: {
-        convertArcs: true,
-      },
-    },
-    {
-      convertEllipseToCircle: true,
-    },
-    {
-      sortAttrs: true,
-    },
-    {
-      collapseGroups: true,
-    },
-    {
-      removeDimensions: true,
-    },
-    {
-      removeStyleElement: true,
-    },
-    {
-      sortDefsChildren: true,
-    },
-    {
-      reusePaths: false,
-    },
-    {
-      removeAttrs: { attrs: '(stroke|fill|data-name)' },
-    },
-  ],
-});
 
 // 将特殊图形转换为path路径
 const elemToPath = (node: any) => {
@@ -231,31 +106,36 @@ const elemToPath = (node: any) => {
 const transformSvg = async (url: string) => {
   try {
     const text = readFileSync(url, 'utf-8');
-    let xmlJson = xml2Js.xml2json(text, {
-      ignoreComment: true,
-      ignoreDoctype: true,
-      ignoreText: false,
-    });
-    let xmlDom = JSON.parse(xmlJson);
-    if (text.includes('linearGradient')) {
-      xmlDom.elements[0].attributes.style = ''
-      + 'width: 1em; height: 1em; vertical-align: middle;fill: currentColor;overflow: hidden;';
-      const str = JSON.stringify(xmlDom).split('\\n\\t')
-        .join('');
-      return JSON.parse(str);
-    }
+    // let xmlJson = xml2Js.xml2json(text, {
+    //   ignoreComment: true,
+    //   ignoreDoctype: true,
+    //   ignoreText: false,
+    // });
+    // let xmlDom = JSON.parse(xmlJson);
+    // debugger;
+    // if (text.includes('linearGradient')) {
+    //   xmlDom.elements[0].attributes.style = ''
+    //   + 'width: 1em; height: 1em; vertical-align: middle;fill: currentColor;overflow: hidden;';
+    //   const str = JSON.stringify(xmlDom).split('\\n\\t')
+    //     .join('');
+    //   return JSON.parse(str);
+    // }
     // 转换图形
-    xmlDom.elements[0] = elemToPath(xmlDom.elements[0]);
-    const svgText = xml2Js.json2xml(JSON.stringify(xmlDom)).replace(/&/gm, '');
-    const info = await cleaner.optimize(svgText || '').catch(() => ({ data: '' }));
-    xmlJson = xml2Js.xml2json(info.data, {
+    // xmlDom.elements[0] = elemToPath(xmlDom.elements[0]);
+    // const svgText = xml2Js.json2xml(JSON.stringify(xmlDom)).replace(/&/gm, '');
+    const info = optimize(text || '', {
+      multipass: true,
+      ...svgoConfig,
+    });
+    debugger;
+    const xmlJson = xml2Js.xml2json(info.data, {
       ignoreComment: true,
       ignoreDoctype: true,
       ignoreText: true,
     });
-    xmlDom = JSON.parse(xmlJson);
+    const xmlDom = JSON.parse(xmlJson);
     const [svgDom] = xmlDom.elements;
-    const viewBoxList = svgDom.attributes.viewBox.split(' ');
+    const viewBoxList = svgDom.attributes.viewbox.split(' ');
     if (!(viewBoxList && viewBoxList.length === 4)) {
       return xmlDom;
     }
@@ -264,9 +144,10 @@ const transformSvg = async (url: string) => {
       xScale: 1024 / (Math.min(x, y) || 1024),
       yScale: 1024 / (Math.min(x, y) || 1024),
     };
-    xmlDom.elements[0].attributes.viewBox = `0 0 ${svgViewBox.xScale * x} ${svgViewBox.yScale * y}`;
+    xmlDom.elements[0].attributes.viewbox = `0 0 ${svgViewBox.xScale * x} ${svgViewBox.yScale * y}`;
     xmlDom.elements[0].attributes.style = ''
       + 'width: 1em; height: 1em; vertical-align: middle;fill: currentColor;overflow: hidden;';
+    debugger;
     const tranformPath = (elements: any[]) => {
       elements.forEach((item) => {
         if (item.name === 'path') {
