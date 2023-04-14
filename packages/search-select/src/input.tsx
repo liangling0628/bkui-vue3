@@ -304,6 +304,9 @@ export default defineComponent({
         return;
       }
       usingItem.value.addValue(item);
+      if (usingItem.value.multiple) {
+        keyword.value = '';
+      }
       const res = await validateUsingItemValues(item);
       if (!res) return;
       if (!usingItem.value.multiple)setSelectedItem();
