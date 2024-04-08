@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { defineComponent, ExtractPropTypes, inject, reactive, ref, unref } from 'vue';
+import { defineComponent, ExtractPropTypes, inject, isVNode, reactive, ref, unref } from 'vue';
 
 import { PropTypes } from '@bkui-vue/shared';
 
@@ -121,54 +121,89 @@ export default defineComponent({
         return Object.assign(result, { [target]: props[key] });
       }, {});
     },
+    rsolveIndexedColumn() {
+      // 如果是设置了Index，则先添加Index列，不做自动递归读取Column
+      if (/\d+\.?\d*/.test(`${this.$props.index}`)) {
+        const resolveProp: any = Object.assign({}, this.copyProps(this.$props), {
+          field: this.$props.prop || this.$props.field,
+          render: this.$slots.default,
+        });
+        this.initColumns(resolveProp);
+        return false;
+      }
+
+      return true;
+    },
     updateColumnDefineByParent() {
+      if (!this.rsolveIndexedColumn()) {
+        return;
+      }
       const fn = () => {
         // @ts-ignore
         const selfVnode = (this as any)._;
-        const getTableNode = () => {
-          const parentVnode = selfVnode.parent;
+        const getTableNode = root => {
+          if (root === document.body || !root) {
+            return null;
+          }
+
+          const parentVnode = root.parent;
           if (parentVnode.type?.name === 'Table') {
             return parentVnode.vnode;
           }
-          return getTableNode();
+          return getTableNode(parentVnode);
         };
 
-        const tableNode = getTableNode();
+        const tableNode = getTableNode(selfVnode);
         if (!tableNode) {
           return;
         }
 
-        const colList = tableNode.children.default() || [];
-
         const sortColumns = [];
         let index = 0;
+
+        const resolveChildNode = node => {
+          if (!node) {
+            return null;
+          }
+
+          if (node.type?.name === 'TableColumn') {
+            const resolveProp = Object.assign({ index }, this.copyProps(node.props), {
+              field: node.props.prop || node.props.field,
+              render: node.children?.default,
+            });
+            sortColumns.push(unref(resolveProp));
+            index = index + 1;
+            return null;
+          }
+
+          if (Array.isArray(node?.children)) {
+            return node.children;
+          }
+
+          if (isVNode(node) && node?.children && typeof node?.children === 'object') {
+            return Object.keys(node.children).map(key => node.children[key]);
+          }
+
+          if (typeof node === 'function') {
+            return node();
+          }
+
+          return null;
+        };
+
         const reduceColumns = nodes => {
           if (!Array.isArray(nodes)) {
+            const children = resolveChildNode(nodes);
+            if (children) {
+              reduceColumns(children);
+            }
             return;
           }
-          nodes.forEach((node: any) => {
-            if (Array.isArray(node)) {
-              reduceColumns(node);
-              return;
-            }
 
-            let skipValidateKey0 = true;
-            if (node.type?.name === 'TableColumn') {
-              skipValidateKey0 = Object.hasOwnProperty.call(node.props || {}, 'key');
-              const resolveProp = Object.assign({ index }, this.copyProps(node.props), {
-                field: node.props.prop || node.props.field,
-                render: node.children?.default,
-              });
-              sortColumns.push(unref(resolveProp));
-              index = index + 1;
-            }
-
-            if (node.children?.length && skipValidateKey0 && node.type?.name !== 'Table') {
-              reduceColumns(node.children);
-            }
-          });
+          nodes?.forEach((node: any) => reduceColumns(node));
         };
-        reduceColumns(colList);
+        reduceColumns(tableNode);
+
         this.initColumns(sortColumns);
       };
 

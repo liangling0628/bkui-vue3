@@ -1,5 +1,77 @@
 ## 更新日志
 
+### 1.0.3-beta.32
+
+* **[feat]**:
+    - fix(table): 动态获取children增加判定逻辑
+
+### 1.0.3-beta.31
+
+* **[feat]**:
+    - fix(table): 动态获取children增加判定逻辑
+
+
+### 1.0.3-beta.30
+
+* **[feat]**:
+    - fix(table): bk-table-column支持嵌套多层自定义父级组件
+
+
+### 1.0.3-beta.29
+
+* **[feat]**:
+    - feat: 增加 Log Search 日志检索业务组件
+    - bugfix(table): 修复默认开启select搜索功能导致分页组件问题
+
+
+### 1.0.3-beta.25
+
+* **[feat]**:
+    - bugfix(dialog): 弹出样式问题修复
+
+
+### 1.0.3-beta.24
+
+* **[feat]**:
+    - bugfix(dialog): 弹出样式问题修复
+
+
+### 1.0.3-beta.23
+
+* **[feat]**:
+    - fix(table): bk-table-column支持嵌套多层自定义父级组件
+
+
+### 1.0.3-beta.22
+
+* **[feat]**:
+    - bugfix(datepicker): 全屏模式下弹出位置不显示
+
+
+### 1.0.3-beta.21
+
+* **[feat]**:
+    - bugfix(datepicker): 全屏模式下弹出位置不显示
+
+
+### 1.0.3-beta.20
+
+* **[feat]**:
+    - bugfix(table): 修复表格获取数据的问题
+
+
+### 1.0.3-beta.19
+
+* **[feat]**:
+    - bugfix(table): row data change error
+
+
+### 1.0.3-beta.18
+
+* **[feat]**:
+    - bugfix(table): row data change error
+
+
 ### 1.0.3-beta.17
 
 * **[feat]**:
