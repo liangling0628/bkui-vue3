@@ -180,17 +180,18 @@ export default defineComponent({
             return node.children;
           }
 
-          if (isVNode(node) && node?.children && typeof node?.children === 'object') {
-            return Object.keys(node.children).map(key => node.children[key]);
+          if (isVNode(node)) {
+            if (!node?.children) {
+              const instance = ssrUtils.renderComponentRoot(node);
+              return instance?.children;
+            }
+            if (typeof node?.children === 'object') {
+              return Object.keys(node.children).map(key => node.children[key]);
+            }
           }
 
           if (typeof node === 'function') {
             return node();
-          }
-
-          if (isVNode(node) && !node?.children) {
-            const instance = ssrUtils.renderComponentRoot(node);
-            return instance?.children;
           }
 
           return null;
