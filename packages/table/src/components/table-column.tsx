@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { defineComponent, ExtractPropTypes, inject, isVNode, reactive, ref, unref } from 'vue';
+import { defineComponent, ExtractPropTypes, inject, isVNode, reactive, ref, ssrUtils, unref } from 'vue';
 
 import { PropTypes } from '@bkui-vue/shared';
 
@@ -186,6 +186,11 @@ export default defineComponent({
 
           if (typeof node === 'function') {
             return node();
+          }
+
+          if (isVNode(node) && !node?.children) {
+            const instance = ssrUtils.renderComponentRoot(node);
+            return instance?.children;
           }
 
           return null;
