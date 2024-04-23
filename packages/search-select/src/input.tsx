@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, defineComponent, PropType, Ref, ref, watch, watchEffect } from 'vue';
+import { computed, defineComponent, nextTick, PropType, Ref, ref, watch, watchEffect } from 'vue';
 
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
@@ -104,14 +104,14 @@ export default defineComponent({
     });
 
     // effects
-    watchEffect(
-      () => {
-        if (!keyword.value) {
-          setInputText();
-        }
-      },
-      { flush: 'pre' },
-    );
+    // watchEffect(
+    //   () => {
+    //     if (!keyword.value) {
+    //       setInputText();
+    //     }
+    //   },
+    //   { flush: 'pre' },
+    // );
 
     watch([menuList, showPopover], () => {
       if (menuList.value?.some(item => !item.disabled) && showPopover.value) {
@@ -177,7 +177,7 @@ export default defineComponent({
     function handleClickOutside(e: MouseEvent) {
       if (!popoverRef.value?.contains(e.target as Node) && props.clickOutside?.(e.target, popoverRef.value)) {
         if (usingItem.value?.values?.length && usingItem.value?.multiple) {
-          keyword.value = '';
+          // keyword.value = '';
           handleKeyEnter();
           return;
         }
@@ -191,42 +191,52 @@ export default defineComponent({
       e && setMenuList();
     }
     function handleInputChange(event: Event) {
-      clearInput();
-      let text = (event.target as HTMLDivElement).innerText;
-      if (/(\r|\n)/gm.test(text) || /\s{2}/gm.test(text)) {
-        event.preventDefault();
-        text = text.replace(/(\r|\n)/gm, ` ${valueLoagic.value} `).replace(/\s{2}/gm, '');
-        inputRef.value.innerText = text;
-        setInputFocus();
-        keyword.value = text.replace(usingItem.value?.keyInnerText || '', '').trim();
+      // clearInput();
+      const text = (event.target as HTMLDivElement).innerText;
+      if (!usingItem.value) {
+        keyword.value = text;
         debounceSetMenuList();
-      } else if (!keyword.value && text.length < (usingItem.value?.inputInnerText?.length || 1)) {
-        const outerText = text
-          .replace('\u00A0', '\u0020')
-          .replace(usingItem.value?.keyInnerText.replace('\u00A0', '\u0020').trim() || '', '')
-          .trim();
-        const hasKeyword =
-          text &&
-          usingItem.value?.keyInnerText &&
-          text.replace('\u00A0', '\u0020').includes(usingItem.value.keyInnerText.replace('\u00A0', '\u0020').trim());
-        if (hasKeyword && outerText && usingItem.value.values?.length) {
-          keyword.value = outerText;
-          debounceSetMenuList();
-          return;
-        }
-        if (outerText || !text?.length) {
-          usingItem.value = null;
-        }
-        keyword.value = outerText ? text : '';
-        debounceSetMenuList();
-      } else if (!usingItem.value?.values?.length) {
-        keyword.value = text
-          .replace('\u00A0', '\u0020')
-          .replace(usingItem.value?.keyInnerText.replace('\u00A0', '\u0020') || '', '')
-          .trim();
-        setInputFocus();
-        debounceSetMenuList();
+        return;
       }
+      keyword.value = text.replace(usingItem.value.name, '').replace(':', '').trim();
+      console.info(keyword.value, '==============');
+      debounceSetMenuList();
+      return;
+
+      // if (/(\r|\n)/gm.test(text) || /\s{2}/gm.test(text)) {
+      //   event.preventDefault();
+      //   text = text.replace(/(\r|\n)/gm, ` ${valueLoagic.value} `).replace(/\s{2}/gm, '');
+      //   inputRef.value.innerText = text;
+      //   setInputFocus();
+      //   keyword.value = text.replace(usingItem.value?.keyInnerText || '', '').trim();
+      //   debounceSetMenuList();
+      // } else if (!keyword.value && text.length < (usingItem.value?.inputInnerText?.length || 1)) {
+      //   const outerText = text
+      //     .replace('\u00A0', '\u0020')
+      //     .replace(usingItem.value?.keyInnerText.replace('\u00A0', '\u0020').trim() || '', '')
+      //     .trim();
+      //   const hasKeyword =
+      //     text &&
+      //     usingItem.value?.keyInnerText &&
+      //     text.replace('\u00A0', '\u0020').includes(usingItem.value.keyInnerText.replace('\u00A0', '\u0020').trim());
+      //   if (hasKeyword && outerText && usingItem.value.values?.length) {
+      //     keyword.value = outerText;
+      //     debounceSetMenuList();
+      //     return;
+      //   }
+      //   if (outerText || !text?.length) {
+      //     usingItem.value = null;
+      //   }
+      //   keyword.value = outerText ? text : '';
+      //   debounceSetMenuList();
+      // } else if (!usingItem.value?.values?.length) {
+      //   keyword.value = text
+      //     .replace('\u00A0', '\u0020')
+      //     .replace(usingItem.value?.keyInnerText.replace('\u00A0', '\u0020') || '', '')
+      //     .trim();
+      //   setInputFocus();
+      //   debounceSetMenuList();
+      // }
     }
     function handleInputKeyup(event: KeyboardEvent) {
       switch (event.code) {
@@ -237,7 +247,7 @@ export default defineComponent({
             menuList.value.some(item => item.id === menuHoverId.value)
           )
             return;
-          handleKeyEnter(event);
+          handleKeyEnter(event).finally(clearInput);
           break;
         case 'Backspace':
           handleKeyBackspace();
@@ -250,6 +260,7 @@ export default defineComponent({
       event?.preventDefault();
       // resolve 中文输入时直接按下enter的错误表现
       await new Promise(r => setTimeout(r, 0));
+      console.info(usingItem.value, '==========');
       if (!usingItem.value) {
         if (!keyword.value || props.valueBehavior === ValueBehavior.NEEDKEY) return;
         const value = {
@@ -264,42 +275,47 @@ export default defineComponent({
         return;
       }
       const { values } = usingItem.value;
-      if (!values?.length) {
-        if (keyword.value?.length) {
-          if (keyword.value.includes(valueLoagic.value)) {
-            const valueList = keyword.value.split(valueLoagic.value);
-            const res = await validateUsingItemValues({ id: keyword.value, name: keyword.value });
-            if (!res) return;
-            valueList.forEach(v => usingItem.value.addValue({ id: v, name: v }));
-          } else {
-            const value = { id: keyword.value, name: keyword.value };
-            const res = await validateUsingItemValues(value);
-            if (!res) return;
-            usingItem.value.addValue(value);
-          }
-          emit('add', usingItem.value);
-          keyword.value = '';
-          usingItem.value = null;
-          setInputFocus(true);
-          return;
+      if (keyword.value?.length) {
+        if (keyword.value.includes(valueLoagic.value)) {
+          const valueList = keyword.value
+            .split(valueLoagic.value)
+            .map(v => v.trim())
+            .filter(v => v);
+          const changedValueList = valueList.filter(v => !values.some(item => item.name === v));
+          const res = await Promise.all(changedValueList.map(v => validateUsingItemValues({ id: v, name: v })))
+            .then(() => true)
+            .catch(() => false);
+          if (!res) return;
+          changedValueList.forEach(v => usingItem.value.addValue({ id: v, name: v }));
+        } else {
+          const value = { id: keyword.value, name: keyword.value };
+          const res = await validateUsingItemValues(value);
+          if (!res) return;
+          usingItem.value.addValue(value);
         }
-        showNoSelectValueError.value = true;
-        return;
-      }
-      if (keyword.value) {
-        const value = {
-          id: keyword.value,
-          name: keyword.value,
-        };
-        const res = await validateUsingItemValues(value);
-        if (!res) return;
-        usingItem.value.addValue(value);
         emit('add', usingItem.value);
         keyword.value = '';
         usingItem.value = null;
         setInputFocus(true);
         return;
       }
+      // showNoSelectValueError.value = true;
+      // return;
+
+      // if (keyword.value) {
+      //   const value = {
+      //     id: keyword.value,
+      //     name: keyword.value,
+      //   };
+      //   const res = await validateUsingItemValues(value);
+      //   if (!res) return;
+      //   usingItem.value.addValue(value);
+      //   emit('add', usingItem.value);
+      //   keyword.value = '';
+      //   usingItem.value = null;
+      //   setInputFocus(true);
+      //   return;
+      // }
 
       const res = await validateUsingItemValues();
       if (!res) return;
@@ -418,26 +434,23 @@ export default defineComponent({
       onValidate('');
       return true;
     }
+    function setCursorToEnd() {
+      if (!inputRef.value) return;
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.selectNodeContents(inputRef.value);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
     function setInputFocus(refleshMenuList = false) {
       if (refleshMenuList) {
-        setTimeout(() => {
-          setMenuList();
-        }, 16);
+        setTimeout(setMenuList, 16);
       }
       isFocus.value = true;
       showPopover.value = true;
       showNoSelectValueError.value = false;
-      const timer = setTimeout(() => {
-        if (inputRef.value) {
-          inputRef.value.focus(); // 光标移至最后
-          const selection = window.getSelection();
-          if (selection.focusOffset === 0) {
-            selection.selectAllChildren(inputRef.value);
-            selection.collapseToEnd();
-          }
-        }
-        window.clearTimeout(timer);
-      }, 0);
+      nextTick(setCursorToEnd);
       emit('focus', isFocus.value);
     }
     async function setMenuList() {
@@ -529,20 +542,22 @@ export default defineComponent({
       setInputFocus(props.valueBehavior === ValueBehavior.NEEDKEY);
     }
     function clearInput() {
-      const text = inputRef.value.innerText;
-      if (text[text.length - 1] === '\n' || text[0] === '\r') {
-        setInputText(text.slice(0, -1));
-        clearInput();
-      } else if (text[0] === '\n' || text[0] === '\r') {
-        setInputText(text.slice(1));
-        clearInput();
-      }
+      // const text = inputRef.value.innerText;
+      if (!inputRef.value) return;
+      inputRef.value.innerText = '';
+      // if (text[text.length - 1] === '\n' || text[0] === '\r') {
+      //   setInputText(text.slice(0, -1));
+      //   clearInput();
+      // } else if (text[0] === '\n' || text[0] === '\r') {
+      //   setInputText(text.slice(1));
+      //   clearInput();
+      // }
     }
-    function setInputText(text = '') {
-      if (inputRef.value) {
-        inputRef.value.innerHTML = text || usingItem.value?.inputInnerHtml || '';
-      }
-    }
+    // function setInputText(text = '') {
+    //   if (inputRef.value) {
+    //     inputRef.value.innerHTML = text || usingItem.value?.inputInnerHtml || '';
+    //   }
+    // }
 
     function handleLogicalChange(logical: SearchLogical) {
       if (!usingItem.value) return;
@@ -610,7 +625,33 @@ export default defineComponent({
         onFocus={this.handleInputFocus}
         onInput={this.handleInputChange}
         onKeydown={this.handleInputKeyup}
-      />
+      >
+        {this.usingItem?.name &&
+          (!this.usingItem.isSpecialType() ? (
+            <span
+              data-key='search-key'
+              key={this.usingItem.name}
+            >
+              {this.usingItem.name}:&nbsp;
+            </span>
+          ) : (
+            <span
+              data-key='search-key'
+              key={this.usingItem.name}
+            >
+              {this.usingItem.name}
+            </span>
+          ))}
+        {this.usingItem?.values?.map((item, index) => (
+          <span
+            key={index}
+            data-key='search-value'
+          >
+            {index > 0 ? ` ${this.usingItem.logical} ` : ''}
+            {item.name}
+          </span>
+        ))}
+      </div>
     );
     const popoverContent = () => {
       if (this.loading) {

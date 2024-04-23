@@ -127,6 +127,7 @@ export class SelectedItem {
     this.id = searchItem.id;
     this.name = searchItem.name;
     this.logical = searchItem.logical || SearchLogical.OR;
+    this.type = type;
   }
   get multiple() {
     return !!this.searchItem.multiple;
