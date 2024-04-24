@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, defineComponent, nextTick, PropType, Ref, ref, watch, watchEffect } from 'vue';
+import { computed, defineComponent, nextTick, PropType, Ref, ref, watch } from 'vue';
 
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
@@ -93,8 +93,7 @@ export default defineComponent({
     const remoteMenuList = ref<ICommonItem[]>([]);
     const menuList: Ref<ISearchItem[]> = ref([]);
 
-    const { editKey, onValidate } = useSearchSelectInject();
-
+    const { editKey, onValidate, searchData } = useSearchSelectInject();
     const valueLoagic = computed(() => usingItem.value?.logical || SearchLogical.OR);
 
     watch(editKey, () => {
@@ -176,67 +175,99 @@ export default defineComponent({
     }
     function handleClickOutside(e: MouseEvent) {
       if (!popoverRef.value?.contains(e.target as Node) && props.clickOutside?.(e.target, popoverRef.value)) {
-        if (usingItem.value?.values?.length && usingItem.value?.multiple) {
-          // keyword.value = '';
+        if (props.mode === SearchInputMode.EDIT || usingItem.value) {
           handleKeyEnter();
           return;
         }
         showPopover.value = false;
-        isFocus.value = false;
         emit('focus', isFocus.value);
       }
     }
-    function handleInputFocus(e: FocusEvent) {
-      setInputFocus();
-      e && setMenuList();
+    function inputFocusForWrapper() {
+      inputRef.value?.focus();
+    }
+    function handleInputFocus() {
+      if (props.mode === SearchInputMode.EDIT && usingItem.value && !isFocus.value) {
+        const range = document.createRange();
+        const selection = window.getSelection();
+        let nodeList = [];
+        if (usingItem.value.values.length) {
+          nodeList = Array.from(inputRef.value.querySelectorAll('[data-type="value"]'));
+        } else {
+          nodeList = Array.from(inputRef.value.querySelectorAll(`[data-type="${usingItem.value.type}"]`));
+        }
+        if (!nodeList.length) return;
+        range.selectNodeContents(nodeList.at(-1));
+        selection?.removeAllRanges();
+        selection.addRange(range); // 注意这里会触发focu事件
+        setInputFocus(true, false);
+        return;
+      }
+      setMenuList();
+      setInputFocus(false, !isFocus.value);
+    }
+    function str2SeletedItem(str: string) {
+      const [key, value] = str.split(':');
+      if (key?.trim()) {
+        const selectedItem = searchData.value.find(item => item.name === key.trim());
+        if (selectedItem) {
+          const item = new SelectedItem(
+            {
+              ...selectedItem,
+            },
+            'default',
+          );
+          item.addValues(value);
+          return item;
+        }
+      }
+      return undefined;
+    }
+    // async function validateSelectItem(selectedItem: SelectedItem) {
+    //   const res = await Promise.all(selectedItem?.values.map(item => validateUsingItemValues(item)))
+    //     .then(() => true)
+    //     .catch(() => false);
+    //   return res;
+    // }
+    function handleInputPaste(event: ClipboardEvent) {
+      event.preventDefault();
+      const { clipboardData } = event;
+      const pastedData = clipboardData.getData('text');
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = pastedData;
+      const formattedText = (tempDiv.textContent || tempDiv.innerText || '').trim();
+      if (!usingItem.value) {
+        const formateItem = str2SeletedItem(formattedText);
+        if (formateItem) {
+          usingItem.value = formateItem;
+          setInputFocus(true, true);
+          return;
+        }
+        keyword.value = formattedText
+          .split(/(\s|\||,|、|\/|\n\r|\n)/gm)
+          .filter(v => !!v.trim())
+          .join(valueLoagic.value);
+        inputRef.value.innerText = keyword.value;
+        setInputFocus();
+        debounceSetMenuList();
+        return;
+      }
+      usingItem.value.addValues(formattedText);
+      debounceSetMenuList();
     }
     function handleInputChange(event: Event) {
-      // clearInput();
       const text = (event.target as HTMLDivElement).innerText;
       if (!usingItem.value) {
         keyword.value = text;
         debounceSetMenuList();
         return;
       }
-      keyword.value = text.replace(usingItem.value.name, '').replace(':', '').trim();
-      console.info(keyword.value, '==============');
-      debounceSetMenuList();
-      return;
 
-      // if (/(\r|\n)/gm.test(text) || /\s{2}/gm.test(text)) {
-      //   event.preventDefault();
-      //   text = text.replace(/(\r|\n)/gm, ` ${valueLoagic.value} `).replace(/\s{2}/gm, '');
-      //   inputRef.value.innerText = text;
-      //   setInputFocus();
-      //   keyword.value = text.replace(usingItem.value?.keyInnerText || '', '').trim();
-      //   debounceSetMenuList();
-      // } else if (!keyword.value && text.length < (usingItem.value?.inputInnerText?.length || 1)) {
-      //   const outerText = text
-      //     .replace('\u00A0', '\u0020')
-      //     .replace(usingItem.value?.keyInnerText.replace('\u00A0', '\u0020').trim() || '', '')
-      //     .trim();
-      //   const hasKeyword =
-      //     text &&
-      //     usingItem.value?.keyInnerText &&
-      //     text.replace('\u00A0', '\u0020').includes(usingItem.value.keyInnerText.replace('\u00A0', '\u0020').trim());
-      //   if (hasKeyword && outerText && usingItem.value.values?.length) {
-      //     keyword.value = outerText;
-      //     debounceSetMenuList();
-      //     return;
-      //   }
-      //   if (outerText || !text?.length) {
-      //     usingItem.value = null;
-      //   }
-      //   keyword.value = outerText ? text : '';
-      //   debounceSetMenuList();
-      // } else if (!usingItem.value?.values?.length) {
-      //   keyword.value = text
-      //     .replace('\u00A0', '\u0020')
-      //     .replace(usingItem.value?.keyInnerText.replace('\u00A0', '\u0020') || '', '')
-      //     .trim();
-      //   setInputFocus();
-      //   debounceSetMenuList();
-      // }
+      keyword.value = usingItem.value.isSpecialType()
+        ? text.trim()
+        : text.replace(usingItem.value.name, '').replace(':', '').trim();
+      console.info(keyword.value, '+++++++++');
+      debounceSetMenuList();
     }
     function handleInputKeyup(event: KeyboardEvent) {
       switch (event.code) {
@@ -247,10 +278,10 @@ export default defineComponent({
             menuList.value.some(item => item.id === menuHoverId.value)
           )
             return;
-          handleKeyEnter(event).finally(clearInput);
+          handleKeyEnter(event).then(v => v && clearInput());
           break;
         case 'Backspace':
-          handleKeyBackspace();
+          handleKeyBackspace(event);
         default:
           showNoSelectValueError.value = false;
           break;
@@ -258,87 +289,82 @@ export default defineComponent({
     }
     async function handleKeyEnter(event?: KeyboardEvent) {
       event?.preventDefault();
+      debugger;
       // resolve 中文输入时直接按下enter的错误表现
       await new Promise(r => setTimeout(r, 0));
-      console.info(usingItem.value, '==========');
       if (!usingItem.value) {
         if (!keyword.value || props.valueBehavior === ValueBehavior.NEEDKEY) return;
-        const value = {
-          id: keyword.value,
-          name: keyword.value,
-        };
-        const res = await validateUsingItemValues(value);
+        const formatItem = str2SeletedItem(keyword.value);
+        const valueList = formatItem?.values || [{ id: keyword.value, name: keyword.value }];
+        const res = await Promise.all(valueList.map(item => validateUsingItemValues(item)))
+          .then(() => true)
+          .catch(() => false);
         if (!res) return;
-        emit('add', new SelectedItem(value, 'text'));
+        emit('add', formatItem || new SelectedItem({ ...valueList[0] }, 'text'));
         keyword.value = '';
         setMenuList();
-        return;
+        return true;
       }
-      const { values } = usingItem.value;
       if (keyword.value?.length) {
-        if (keyword.value.includes(valueLoagic.value)) {
-          const valueList = keyword.value
-            .split(valueLoagic.value)
-            .map(v => v.trim())
-            .filter(v => v);
-          const changedValueList = valueList.filter(v => !values.some(item => item.name === v));
-          const res = await Promise.all(changedValueList.map(v => validateUsingItemValues({ id: v, name: v })))
-            .then(() => true)
-            .catch(() => false);
-          if (!res) return;
-          changedValueList.forEach(v => usingItem.value.addValue({ id: v, name: v }));
+        let valueList = [];
+        if (usingItem.value.isSpecialType()) {
+          const formatItem = str2SeletedItem(keyword.value);
+          if (formatItem) {
+            usingItem.value = formatItem;
+            valueList = formatItem.values;
+          }
+        }
+        if (!valueList.length) {
+          valueList = usingItem.value.str2Values(keyword.value);
+        }
+        const res = await Promise.all(valueList.map(item => validateUsingItemValues(item)))
+          .then(() => true)
+          .catch(() => false);
+        if (!res) return;
+        if (usingItem.value.type === 'text') {
+          usingItem.value.name = keyword.value;
+          usingItem.value.id = keyword.value;
         } else {
-          const value = { id: keyword.value, name: keyword.value };
-          const res = await validateUsingItemValues(value);
-          if (!res) return;
-          usingItem.value.addValue(value);
+          usingItem.value.values = valueList;
         }
         emit('add', usingItem.value);
         keyword.value = '';
         usingItem.value = null;
         setInputFocus(true);
-        return;
+        return true;
       }
-      // showNoSelectValueError.value = true;
-      // return;
-
-      // if (keyword.value) {
-      //   const value = {
-      //     id: keyword.value,
-      //     name: keyword.value,
-      //   };
-      //   const res = await validateUsingItemValues(value);
-      //   if (!res) return;
-      //   usingItem.value.addValue(value);
-      //   emit('add', usingItem.value);
-      //   keyword.value = '';
-      //   usingItem.value = null;
-      //   setInputFocus(true);
-      //   return;
-      // }
-
+      if (!usingItem.value?.isSpecialType() && usingItem.value?.values?.length < 1) {
+        showNoSelectValueError.value = true;
+        return false;
+      }
       const res = await validateUsingItemValues();
-      if (!res) return;
+      if (!res) return false;
       setSelectedItem();
+      return false;
     }
-    function handleKeyBackspace() {
+    function handleKeyBackspace(event: KeyboardEvent) {
       // 删除已选择项
       if (!usingItem.value && !keyword.value) {
         emit('delete');
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         setTimeout(setMenuList, 16);
         return;
       }
       if (usingItem.value?.values.length) {
-        // 删除选项
-        if (
-          usingItem.value?.multiple ||
-          usingItem.value.isInValueList(usingItem.value.values[0]) ||
-          (props.mode === SearchInputMode.EDIT && !keyword.value)
-        ) {
-          usingItem.value.values.splice(-1, 1);
+        // if (hasSelectAllContent) {
+        // }
+        event.preventDefault();
+        const selection = window.getSelection();
+        if (selection?.rangeCount > 0) {
+          const range: Range = selection.getRangeAt(0);
+          const startPos = range.startContainer;
+          let node: Node | HTMLSpanElement = startPos;
+          while (node && node.parentNode !== inputRef.value) {
+            node = node.parentNode;
+          }
+          const editIndex: number | string = (node as HTMLSpanElement)?.dataset?.index || -1;
+          usingItem.value.values.splice(+editIndex, 1);
           keyword.value = '';
-          setInputFocus();
+          setInputFocus(false, false);
           return;
         }
       } else if (!keyword.value) {
@@ -353,7 +379,7 @@ export default defineComponent({
       if (item.value?.id) {
         if ((props.valueBehavior === ValueBehavior.NEEDKEY && item.value) || !props.validateValues) {
           const seleted = new SelectedItem({ ...item, id: item.realId ?? item.id }, type);
-          seleted.addValue(item.value);
+          seleted.addValues(item.value.name, false);
           setSelectedItem(seleted);
           if (props.valueBehavior === ValueBehavior.NEEDKEY && menuHoverId.value) {
             setInputFocus(true);
@@ -362,8 +388,8 @@ export default defineComponent({
           return;
         }
         usingItem.value = new SelectedItem({ ...item, id: item.realId ?? item.id }, type);
-        usingItem.value.addValue(item.value);
-        const res = await validateUsingItemValues(item.value);
+        usingItem.value.addValues(item.value.name, false);
+        const res = await Promise.all(usingItem.value.values.map(v => validateUsingItemValues(v)));
         if (!res) {
           usingItem.value = null;
           return;
@@ -374,7 +400,7 @@ export default defineComponent({
         setInputFocus(true);
         return;
       }
-      if (!usingItem.value || !inputRef?.value?.innerText) {
+      if (!usingItem.value) {
         usingItem.value = new SelectedItem(item, type);
         keyword.value = '';
         const isCondition = type === 'condition';
@@ -388,7 +414,8 @@ export default defineComponent({
         setSelectedItem();
         return;
       }
-      usingItem.value.addValue(item);
+      usingItem.value?.addValue(item);
+      keyword.value = '';
       const res = await validateUsingItemValues(item);
       if (!res) return;
       if (!usingItem.value.multiple) setSelectedItem();
@@ -443,14 +470,14 @@ export default defineComponent({
       selection.removeAllRanges();
       selection.addRange(range);
     }
-    function setInputFocus(refleshMenuList = false) {
+    function setInputFocus(refleshMenuList = false, needCursorToEnd = true) {
       if (refleshMenuList) {
         setTimeout(setMenuList, 16);
       }
       isFocus.value = true;
       showPopover.value = true;
       showNoSelectValueError.value = false;
-      nextTick(setCursorToEnd);
+      needCursorToEnd && nextTick(setCursorToEnd);
       emit('focus', isFocus.value);
     }
     async function setMenuList() {
@@ -539,26 +566,13 @@ export default defineComponent({
       emit('add', item ?? usingItem.value);
       usingItem.value = null;
       keyword.value = '';
-      setInputFocus(props.valueBehavior === ValueBehavior.NEEDKEY);
+      setInputFocus(true, true);
+      nextTick(clearInput);
     }
     function clearInput() {
-      // const text = inputRef.value.innerText;
       if (!inputRef.value) return;
       inputRef.value.innerText = '';
-      // if (text[text.length - 1] === '\n' || text[0] === '\r') {
-      //   setInputText(text.slice(0, -1));
-      //   clearInput();
-      // } else if (text[0] === '\n' || text[0] === '\r') {
-      //   setInputText(text.slice(1));
-      //   clearInput();
-      // }
     }
-    // function setInputText(text = '') {
-    //   if (inputRef.value) {
-    //     inputRef.value.innerHTML = text || usingItem.value?.inputInnerHtml || '';
-    //   }
-    // }
-
     function handleLogicalChange(logical: SearchLogical) {
       if (!usingItem.value) return;
       usingItem.value.logical = logical;
@@ -566,6 +580,7 @@ export default defineComponent({
 
     // expose
     expose({
+      inputFocusForWrapper,
       handleInputFocus,
       isFocus,
     });
@@ -587,6 +602,7 @@ export default defineComponent({
       handleClickOutside,
       handleInputFocus,
       handleInputChange,
+      handleInputPaste,
       handleLogicalChange,
       handleInputKeyup,
       handleSelectItem,
@@ -622,6 +638,7 @@ export default defineComponent({
         data-tips={placeholder || ''}
         spellcheck='false'
         v-clickoutside={this.handleClickOutside}
+        onPaste={this.handleInputPaste}
         onFocus={this.handleInputFocus}
         onInput={this.handleInputChange}
         onKeydown={this.handleInputKeyup}
@@ -629,15 +646,20 @@ export default defineComponent({
         {this.usingItem?.name &&
           (!this.usingItem.isSpecialType() ? (
             <span
-              data-key='search-key'
-              key={this.usingItem.name}
+              data-key={this.usingItem.name}
+              data-type={this.usingItem.type}
+              key={this.usingItem.nameRenderkey}
+              onMousedown={e => e.preventDefault()}
+              contenteditable={false}
+              style={{ color: '#979BA5' }}
             >
               {this.usingItem.name}:&nbsp;
             </span>
           ) : (
             <span
-              data-key='search-key'
-              key={this.usingItem.name}
+              data-key={this.usingItem.name}
+              data-type={this.usingItem.type}
+              key={this.usingItem.nameRenderkey}
             >
               {this.usingItem.name}
             </span>
@@ -645,7 +667,10 @@ export default defineComponent({
         {this.usingItem?.values?.map((item, index) => (
           <span
             key={index}
-            data-key='search-value'
+            data-key={item.name}
+            data-type='value'
+            data-id={item.id}
+            data-index={index}
           >
             {index > 0 ? ` ${this.usingItem.logical} ` : ''}
             {item.name}
