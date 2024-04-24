@@ -176,15 +176,16 @@ export default defineComponent({
     function handleClickOutside(e: MouseEvent) {
       if (!popoverRef.value?.contains(e.target as Node) && props.clickOutside?.(e.target, popoverRef.value)) {
         if (props.mode === SearchInputMode.EDIT || usingItem.value) {
-          handleKeyEnter();
+          usingItem.value && handleKeyEnter();
+          if (!usingItem.value) {
+            emit('focus', false);
+          }
           return;
         }
+        isFocus.value = false;
         showPopover.value = false;
         emit('focus', isFocus.value);
       }
-    }
-    function inputFocusForWrapper() {
-      inputRef.value?.focus();
     }
     function handleInputFocus() {
       if (props.mode === SearchInputMode.EDIT && usingItem.value && !isFocus.value) {
@@ -206,29 +207,6 @@ export default defineComponent({
       setMenuList();
       setInputFocus(false, !isFocus.value);
     }
-    function str2SeletedItem(str: string) {
-      const [key, value] = str.split(':');
-      if (key?.trim()) {
-        const selectedItem = searchData.value.find(item => item.name === key.trim());
-        if (selectedItem) {
-          const item = new SelectedItem(
-            {
-              ...selectedItem,
-            },
-            'default',
-          );
-          item.addValues(value);
-          return item;
-        }
-      }
-      return undefined;
-    }
-    // async function validateSelectItem(selectedItem: SelectedItem) {
-    //   const res = await Promise.all(selectedItem?.values.map(item => validateUsingItemValues(item)))
-    //     .then(() => true)
-    //     .catch(() => false);
-    //   return res;
-    // }
     function handleInputPaste(event: ClipboardEvent) {
       event.preventDefault();
       const { clipboardData } = event;
@@ -262,11 +240,9 @@ export default defineComponent({
         debounceSetMenuList();
         return;
       }
-
       keyword.value = usingItem.value.isSpecialType()
         ? text.trim()
         : text.replace(usingItem.value.name, '').replace(':', '').trim();
-      console.info(keyword.value, '+++++++++');
       debounceSetMenuList();
     }
     function handleInputKeyup(event: KeyboardEvent) {
@@ -289,7 +265,6 @@ export default defineComponent({
     }
     async function handleKeyEnter(event?: KeyboardEvent) {
       event?.preventDefault();
-      debugger;
       // resolve 中文输入时直接按下enter的错误表现
       await new Promise(r => setTimeout(r, 0));
       if (!usingItem.value) {
@@ -461,25 +436,6 @@ export default defineComponent({
       onValidate('');
       return true;
     }
-    function setCursorToEnd() {
-      if (!inputRef.value) return;
-      const range = document.createRange();
-      const selection = window.getSelection();
-      range.selectNodeContents(inputRef.value);
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    function setInputFocus(refleshMenuList = false, needCursorToEnd = true) {
-      if (refleshMenuList) {
-        setTimeout(setMenuList, 16);
-      }
-      isFocus.value = true;
-      showPopover.value = true;
-      showNoSelectValueError.value = false;
-      needCursorToEnd && nextTick(setCursorToEnd);
-      emit('focus', isFocus.value);
-    }
     async function setMenuList() {
       let list = [];
       if (
@@ -562,6 +518,25 @@ export default defineComponent({
         }
       }
     }
+    function setCursorToEnd() {
+      if (!inputRef.value) return;
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.selectNodeContents(inputRef.value);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    function setInputFocus(refleshMenuList = false, needCursorToEnd = true) {
+      if (refleshMenuList) {
+        setTimeout(setMenuList, 16);
+      }
+      isFocus.value = true;
+      showPopover.value = true;
+      showNoSelectValueError.value = false;
+      needCursorToEnd && nextTick(setCursorToEnd);
+      emit('focus', isFocus.value);
+    }
     function setSelectedItem(item?: SelectedItem) {
       emit('add', item ?? usingItem.value);
       usingItem.value = null;
@@ -576,6 +551,26 @@ export default defineComponent({
     function handleLogicalChange(logical: SearchLogical) {
       if (!usingItem.value) return;
       usingItem.value.logical = logical;
+    }
+    function str2SeletedItem(str: string) {
+      const [key, value] = str.split(':');
+      if (key?.trim()) {
+        const selectedItem = searchData.value.find(item => item.name === key.trim());
+        if (selectedItem) {
+          const item = new SelectedItem(
+            {
+              ...selectedItem,
+            },
+            'default',
+          );
+          item.addValues(value);
+          return item;
+        }
+      }
+      return undefined;
+    }
+    function inputFocusForWrapper() {
+      inputRef.value?.focus();
     }
 
     // expose
