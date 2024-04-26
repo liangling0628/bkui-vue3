@@ -117,7 +117,7 @@ export default defineComponent({
     clickoutside,
   },
   props: SearchSelectProps,
-  emits: ['update:modelValue', 'search'],
+  emits: ['update:modelValue', 'search', 'selectKey'],
   setup(props, { emit }) {
     const t = useLocale('searchSelect');
     const { resolveClassName } = usePrefix();
@@ -317,6 +317,9 @@ export default defineComponent({
       inputRef.value.inputEnterForWrapper();
       emit('search', e);
     }
+    function handleSelectedKey(a: any) {
+      emit('selectKey', a);
+    }
     return {
       inputRef,
       wrapRef,
@@ -337,6 +340,7 @@ export default defineComponent({
       handleClickSearch,
       localConditions,
       resolveClassName,
+      handleSelectedKey,
       t,
     };
   },
@@ -345,9 +349,10 @@ export default defineComponent({
     const showCondition = !!this.selectedList.length && this.selectedList.slice(-1)[0].type !== 'condition';
     const menuSlots = Object.assign(
       {},
-      this.$slots.menu
+      this.$slots.customPanel
         ? {
-            menu: (data: MenuSlotParams) => this.$slots.menu?.(data),
+            // menu: (data: MenuSlotParams) => this.$slots.menu?.(data),
+            customPanel: (data: MenuSlotParams) => this.$slots.customPanel?.(data),
           }
         : {},
     );
@@ -378,6 +383,7 @@ export default defineComponent({
               validateValues={this.validateValues}
               valueBehavior={this.valueBehavior as ValueBehavior}
               onDelete={this.handleDeleteSelected}
+              onSelectKey={this.handleSelectedKey}
               v-slots={{ ...menuSlots }}
             />
             <div class='search-container-input'>
@@ -395,6 +401,7 @@ export default defineComponent({
                 onAdd={this.handleAddSelected}
                 onDelete={this.handleDeleteSelected}
                 onFocus={this.handleInputFocus}
+                onSelectKey={this.handleSelectedKey}
                 v-slots={{ ...menuSlots }}
               />
             </div>

@@ -74,7 +74,7 @@ export default defineComponent({
     validateValues: Function as PropType<ValidateValuesFunc>,
     valueBehavior: String as PropType<ValueBehavior>,
   },
-  emits: ['focus', 'add', 'delete'],
+  emits: ['focus', 'add', 'delete', 'selectKey'],
   setup(props, { emit, expose }) {
     const t = useLocale('searchSelect');
     const { resolveClassName } = usePrefix();
@@ -168,6 +168,7 @@ export default defineComponent({
       item && handleSelectItem(item);
     }
     function handleClickOutside(e: MouseEvent) {
+      if (usingItem.value?.customMenu) return;
       if (!popoverRef.value?.contains(e.target as Node) && props.clickOutside?.(e.target, popoverRef.value)) {
         if (props.mode === SearchInputMode.EDIT || usingItem.value) {
           usingItem.value && handleKeyEnter().then(v => v && clearInput());
@@ -335,6 +336,13 @@ export default defineComponent({
         usingItem.value = new SelectedItem(item, type ?? usingItem.value?.type);
         keyword.value = '';
         const isCondition = usingItem.value?.type === 'condition';
+        if (!isCondition) {
+          emit('selectKey', {
+            id: item.id,
+            name: item.name,
+            values: [],
+          });
+        }
         if (isCondition) {
           setSelectedItem();
         }
@@ -596,6 +604,10 @@ export default defineComponent({
       usingItem.value = null;
       nextTick(clearInput);
     }
+    function customPanelSubmit(value: string) {
+      usingItem.value.values = [{ id: JSON.stringify(value), name: JSON.stringify(value) }];
+      handleKeyEnter().then(v => v && clearInput());
+    }
     // expose
     expose({
       inputFocusForWrapper,
@@ -633,6 +645,7 @@ export default defineComponent({
       inputEnterForWrapper,
       inputClearForWrapper,
       deleteInputTextNode,
+      customPanelSubmit,
       t,
     };
   },
@@ -696,8 +709,8 @@ export default defineComponent({
             data-id={item.id}
             data-index={index}
           >
-            {index > 0 ? ` ${this.usingItem.logical} ` : ''}
             {item.name}
+            {index < this.usingItem.values.length - 1 ? ` ${this.usingItem.logical} ` : ''}
           </span>
         ))}
       </div>
@@ -708,6 +721,21 @@ export default defineComponent({
       }
       if (this.showNoSelectValueError) {
         return <div>{this.t.filterQueryMustHasValue}</div>;
+      }
+      if (this.usingItem?.customMenu && this.$slots.customPanel) {
+        return (
+          <div
+            ref='popoverRef'
+            class={this.resolveClassName('search-select-popover')}
+          >
+            {this.$slots.customPanel({
+              value: this.usingItem.values?.[0],
+              id: this.usingItem.id,
+              name: this.usingItem.name,
+              onSubmit: this.customPanelSubmit,
+            })}
+          </div>
+        );
       }
       return this.menuList?.length ? (
         <div

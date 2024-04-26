@@ -113,6 +113,7 @@ export interface ISearchItem {
   logical?: SearchLogical;
   // 是否显示逻辑符号选项列表 默认不显示 仅在多选时生效
   showLogicalPanel?: boolean;
+  customMenu?: boolean;
 }
 export enum SearchLogical {
   AND = '&',
@@ -170,6 +171,9 @@ export class SelectedItem {
   }
   get showLogical() {
     return !!this.searchItem.showLogicalPanel;
+  }
+  get customMenu() {
+    return this.searchItem.customMenu;
   }
   isSpecialType() {
     return ['text', 'condition'].includes(this.type);
