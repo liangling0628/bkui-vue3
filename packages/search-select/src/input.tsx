@@ -605,7 +605,7 @@ export default defineComponent({
       nextTick(clearInput);
     }
     function customPanelSubmit(value: string) {
-      usingItem.value.values = [{ id: JSON.stringify(value), name: JSON.stringify(value) }];
+      usingItem.value.values = [{ id: value, name: value }];
       handleKeyEnter().then(v => v && clearInput());
     }
     // expose

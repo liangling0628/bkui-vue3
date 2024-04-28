@@ -133,7 +133,7 @@ function handleSelectKey(item) {
   };
 }
 function handleSubmit(onSubmit) {
-  onSubmit({ ...formValue.value });
+  onSubmit(JSON.stringify({ ...formValue.value }));
 }
 </script>
 <style lang="less">
