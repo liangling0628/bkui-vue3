@@ -2,6 +2,7 @@
   <bk-search-select
     v-model="value"
     :data="data"
+    unique-select
     @select-key="handleSelectKey"
   >
     <template #customPanel="{ name, onSubmit }">
@@ -59,26 +60,10 @@ import { Input as BkInput } from 'bkui-vue';
 import { ref } from 'vue';
 const data = [
   {
-    name: '实例状态',
+    name: '自定义面板',
     id: '1',
-    multiple: true,
-    placeholder: '实例状态是必选项',
+    placeholder: '自定义面板',
     customMenu: true,
-    children: [
-      {
-        name: '创建中',
-        id: '1-2',
-      },
-      {
-        name: '运行中',
-        id: '1-3',
-        disabled: false,
-      },
-      {
-        name: '已关机',
-        id: '1-4',
-      },
-    ],
   },
   {
     name: '实例业务',

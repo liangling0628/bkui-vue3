@@ -167,20 +167,28 @@ export default defineComponent({
       const item = menuList.value.find(item => item.id === menuHoverId.value);
       item && handleSelectItem(item);
     }
+
     function handleClickOutside(e: MouseEvent) {
-      if (usingItem.value?.customMenu) return;
-      if (!popoverRef.value?.contains(e.target as Node) && props.clickOutside?.(e.target, popoverRef.value)) {
-        if (props.mode === SearchInputMode.EDIT || usingItem.value) {
-          usingItem.value && handleKeyEnter().then(v => v && clearInput());
-          if (!usingItem.value) {
-            emit('focus', false);
-          }
-          return;
-        }
-        isFocus.value = false;
-        showPopover.value = false;
-        emit('focus', isFocus.value);
+      if (popoverRef.value?.contains(e.target as Node) || !props.clickOutside?.(e.target, popoverRef.value)) {
+        return;
       }
+      if (usingItem.value?.customMenu) {
+        if (props.mode === SearchInputMode.EDIT) {
+          handleKeyEnter().then(v => v && clearInput());
+          showPopover.value = false;
+        }
+        return;
+      }
+      if (props.mode === SearchInputMode.EDIT || usingItem.value) {
+        usingItem.value && handleKeyEnter().then(v => v && clearInput());
+        if (!usingItem.value) {
+          emit('focus', false);
+        }
+        return;
+      }
+      isFocus.value = false;
+      showPopover.value = false;
+      emit('focus', isFocus.value);
     }
     function handleInputFocus() {
       showNoSelectValueError.value = false;
@@ -650,9 +658,10 @@ export default defineComponent({
     };
   },
   render() {
-    const { multiple, values, placeholder, inputInnerHtml } = this.usingItem || {};
+    const { multiple, values, placeholder, inputInnerHtml, customMenu } = this.usingItem || {};
     const showInputAfter = !this.keyword?.length && !values?.length && placeholder;
-    const showPopover = this.loading || this.showNoSelectValueError || (this.showPopover && !!this.menuList?.length);
+    const showPopover =
+      this.loading || this.showNoSelectValueError || (this.showPopover && (!!customMenu || !!this.menuList?.length));
     const showCondition = !this.usingItem && this.showCondition;
     const menuSlots = Object.assign(
       {},
