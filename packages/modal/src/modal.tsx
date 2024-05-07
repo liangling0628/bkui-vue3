@@ -204,7 +204,7 @@ export default defineComponent({
                 v-show={this.localShow}
                 ref='maskRef'
                 class={{
-                  [this.resolveClassName('modal-ctx-mask')]: true,
+                  [this.resolveClassName('modal-mask')]: true,
                 }}
                 style={{
                   zIndex: this.zIndex,
