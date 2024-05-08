@@ -36,6 +36,7 @@ import {
   shallowRef,
   watch,
 } from 'vue';
+import { type SlotsType } from 'vue';
 
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
@@ -118,6 +119,12 @@ export default defineComponent({
   },
   props: SearchSelectProps,
   emits: ['update:modelValue', 'search', 'selectKey'],
+  slots: Object as SlotsType<{
+    menu: MenuSlotParams;
+    prepend: void;
+    append: void;
+    validate: void;
+  }>,
   setup(props, { emit }) {
     const t = useLocale('searchSelect');
     const { resolveClassName } = usePrefix();
@@ -349,10 +356,9 @@ export default defineComponent({
     const showCondition = !!this.selectedList.length && this.selectedList.slice(-1)[0].type !== 'condition';
     const menuSlots = Object.assign(
       {},
-      this.$slots.customPanel
+      this.$slots.menu
         ? {
-            // menu: (data: MenuSlotParams) => this.$slots.menu?.(data),
-            customPanel: (data: MenuSlotParams) => this.$slots.customPanel?.(data),
+            menu: (data: MenuSlotParams) => this.$slots.menu?.(data),
           }
         : {},
     );

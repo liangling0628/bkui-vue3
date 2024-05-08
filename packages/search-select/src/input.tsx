@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, defineComponent, nextTick, PropType, Ref, ref, watch } from 'vue';
+import { computed, defineComponent, nextTick, PropType, Ref, ref, SlotsType, watch } from 'vue';
 
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
 import { clickoutside } from '@bkui-vue/directives';
@@ -75,6 +75,9 @@ export default defineComponent({
     valueBehavior: String as PropType<ValueBehavior>,
   },
   emits: ['focus', 'add', 'delete', 'selectKey'],
+  slots: Object as SlotsType<{
+    menu: MenuSlotParams;
+  }>,
   setup(props, { emit, expose }) {
     const t = useLocale('searchSelect');
     const { resolveClassName } = usePrefix();
@@ -172,7 +175,7 @@ export default defineComponent({
       if (popoverRef.value?.contains(e.target as Node) || !props.clickOutside?.(e.target, popoverRef.value)) {
         return;
       }
-      if (usingItem.value?.customMenu) {
+      if (usingItem.value?.isCustomMenu) {
         if (props.mode === SearchInputMode.EDIT) {
           handleKeyEnter().then(v => v && clearInput());
           showPopover.value = false;
@@ -284,6 +287,9 @@ export default defineComponent({
       const isValid = await validateUsingItemValues();
       if (!isValid) {
         return false;
+      }
+      if (usingItem.value?.isCustomMenu) {
+        showPopover.value = false;
       }
       setSelectedItem();
       return false;
@@ -559,10 +565,13 @@ export default defineComponent({
     }
     function setSelectedItem(item?: SelectedItem) {
       emit('add', item ?? usingItem.value);
+      const needCursorToEnd = !usingItem.value?.isCustomMenu;
       usingItem.value = null;
       keyword.value = '';
-      setInputFocus(true, true);
-      nextTick(clearInput);
+      if (needCursorToEnd) {
+        setInputFocus(true, needCursorToEnd);
+        nextTick(clearInput);
+      }
     }
     function clearInput() {
       if (!inputRef.value) return;
@@ -658,19 +667,11 @@ export default defineComponent({
     };
   },
   render() {
-    const { multiple, values, placeholder, inputInnerHtml, customMenu } = this.usingItem || {};
+    const { multiple, values, placeholder, inputInnerHtml, isCustomMenu } = this.usingItem || {};
     const showInputAfter = !this.keyword?.length && !values?.length && placeholder;
     const showPopover =
-      this.loading || this.showNoSelectValueError || (this.showPopover && (!!customMenu || !!this.menuList?.length));
+      this.loading || this.showNoSelectValueError || (this.showPopover && (!!isCustomMenu || !!this.menuList?.length));
     const showCondition = !this.usingItem && this.showCondition;
-    const menuSlots = Object.assign(
-      {},
-      this.$slots.menu
-        ? {
-            default: (data: MenuSlotParams) => this.$slots.menu?.(data),
-          }
-        : {},
-    );
     const inputContent = () => (
       <div
         ref='inputRef'
@@ -731,13 +732,13 @@ export default defineComponent({
       if (this.showNoSelectValueError) {
         return <div>{this.t.filterQueryMustHasValue}</div>;
       }
-      if (this.usingItem?.customMenu && this.$slots.customPanel) {
+      if (this.usingItem?.isCustomMenu && this.$slots.menu) {
         return (
           <div
             ref='popoverRef'
             class={this.resolveClassName('search-select-popover')}
           >
-            {this.$slots.customPanel({
+            {this.$slots.menu({
               value: this.usingItem.values?.[0],
               id: this.usingItem.id,
               name: this.usingItem.name,
@@ -764,7 +765,6 @@ export default defineComponent({
             onSelectItem={this.handleSelectItem}
             onSelectCondition={this.handleSelectCondtionItem}
             onFooterClick={this.handleMenuFooterClick}
-            v-slots={{ ...menuSlots }}
           />
         </div>
       ) : undefined;

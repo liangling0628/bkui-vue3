@@ -5,7 +5,7 @@
     unique-select
     @select-key="handleSelectKey"
   >
-    <template #customPanel="{ name, onSubmit }">
+    <template #menu="{ name, onSubmit }">
       <div class="custom-panel">
         <h3>{{ name }}</h3>
         <bk-form class="example">
@@ -63,7 +63,7 @@ const data = [
     name: '自定义面板',
     id: '1',
     placeholder: '自定义面板',
-    customMenu: true,
+    isCustomMenu: true,
   },
   {
     name: '实例业务',
