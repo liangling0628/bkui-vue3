@@ -324,7 +324,6 @@ export default defineComponent({
       <Modal
         class={{
           [this.resolveClassName('dialog')]: true,
-          [this.resolveClassName('dialog-wrapper')]: true,
           'is-fullscreen': this.fullscreen,
         }}
         isShow={this.isShow}
