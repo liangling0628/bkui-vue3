@@ -25,7 +25,7 @@
  * IN THE SOFTWARE.
  */
 module.exports = [
-  ...require('@blueking/bkmonitor-lint/eslint'),
+  ...require('@blueking/bkui-lint/eslint'),
   {
     ignores: ['node_modules', 'lib', 'dist'],
   },

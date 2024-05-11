@@ -25,7 +25,7 @@
  */
 /* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const prettierConfig = require('@blueking/bkmonitor-lint/prettier');
+const prettierConfig = require('@blueking/bkui-lint/prettier');
 module.exports = {
   ...prettierConfig,
 };
