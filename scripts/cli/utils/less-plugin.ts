@@ -49,14 +49,6 @@ export function resolveUrl(filename: string) {
 export default class LessResolvePathPlugin {
   install(less: LessStatic, pluginManager: Less.PluginManager) {
     class ResolvePathPlugin extends less.FileManager {
-      supports(filename: string) {
-        return !!filename.match(fileCheckRegex);
-      }
-
-      supportsSync(filename: string) {
-        return this.supports(filename);
-      }
-
       loadFile(
         filename: string,
         currentDirectory: string,
@@ -73,6 +65,14 @@ export default class LessResolvePathPlugin {
         enviroment: Less.Environment,
       ) {
         return super.loadFileSync(resolveUrl(filename), currentDirectory, options, enviroment);
+      }
+
+      supports(filename: string) {
+        return !!filename.match(fileCheckRegex);
+      }
+
+      supportsSync(filename: string) {
+        return this.supports(filename);
       }
     }
     pluginManager.addFileManager(new ResolvePathPlugin());

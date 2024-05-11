@@ -49,10 +49,10 @@ class WorkerTask extends AsyncResource {
 }
 export type WorkerType = Worker & { [buildTask]: WorkerTask | null };
 export class WorkerPool extends EventEmitter {
-  size: number;
-  workers: WorkerType[];
   freeWorkers: WorkerType[];
   globals: GlobalsOption | null = null;
+  size: number;
+  workers: WorkerType[];
   constructor(size: number) {
     super();
     this.size = size;
@@ -82,6 +82,10 @@ export class WorkerPool extends EventEmitter {
     this.emit(buildEvent);
   }
 
+  close() {
+    for (const worker of this.workers) worker.terminate();
+  }
+
   run<T>(task: T, taskOption: ILibTaskOption | null, callback: <T>(err: Error, task: T) => void) {
     if (this.freeWorkers.length === 0) {
       this.once(buildEvent, () => this.run(task, taskOption, callback));
@@ -90,9 +94,5 @@ export class WorkerPool extends EventEmitter {
     const worker = this.freeWorkers.pop()! as WorkerType;
     worker[buildTask] = new WorkerTask(callback);
     worker.postMessage({ task, taskOption });
-  }
-
-  close() {
-    for (const worker of this.workers) worker.terminate();
   }
 }

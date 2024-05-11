@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/member-ordering */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
@@ -27,22 +28,21 @@
 export type TaskRunner<T> = (options?: T) => Promise<void>;
 
 export class Task<TOptions> {
+  exec = () => this.runner(this.options);
   options: TOptions = {} as any;
-  // eslint-disable-next-line no-useless-constructor
-  constructor(
-    public name: string,
-    public runner: TaskRunner<TOptions>,
-  ) {}
   setName = (name: string) => {
     this.name = name;
-  };
-  setRunner = (runner: TaskRunner<TOptions>) => {
-    this.runner = runner;
   };
   setOptions = (options?: TOptions) => {
     this.options = options || ({} as any);
   };
-  exec = () => this.runner(this.options);
+  setRunner = (runner: TaskRunner<TOptions>) => {
+    this.runner = runner;
+  };
+  constructor(
+    public name: string,
+    public runner: TaskRunner<TOptions>,
+  ) {}
 }
 
 export interface ILibTaskOption {
@@ -50,7 +50,7 @@ export interface ILibTaskOption {
 }
 
 export interface ITaskItem {
-  type: 'style' | 'script';
+  type: 'script' | 'style';
   url: string;
   newPath: string;
 }
