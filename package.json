@@ -39,16 +39,11 @@
     "analyze:lib": "rimraf lib && lerna run --stream --scope cli lib -- -a",
     "generate:icon": "lerna run --scope @bkui-vue/icon build",
     "changelog": "conventional-changelog -c .changelog.config.js -p angular -i CHANGELOG.md -s -l",
-    "lint:packages": "eslint ./packages --ext .js,.ts,.tsx --cache",
-    "lint:site": "eslint ./site --ext .js,.ts,.tsx,.vue --cache",
-    "lint:scripts": "eslint ./scripts --ext .js,.ts,.tsx --cache",
+    "lint:packages": "npx eslint --fix ./packages",
+    "lint:site": "npx eslint --fix ./site",
+    "lint:scripts": "npx eslint --fix ./scripts",
     "lint": "run-p lint:site lint:packages lint:scripts",
-    "fix:packages": "eslint ./packages --ext .js,.ts,.tsx --fix --cache",
-    "fix:site": "eslint ./site --ext .js,.ts,.tsx,.vue --fix --cache",
-    "fix:scripts": "eslint ./scripts --ext .js,.ts,.tsx --fix --cache",
-    "lint:fix": "run-p lint:site lint:packages lint:scripts",
-    "stylelint": "stylelint ./{packages,site}/**/*.{vue,less} --custom-syntax",
-    "stylelint:fix": "stylelint --fix ./{packages,site}/**/*.{vue,less} --custom-syntax",
+    "stylelint": "stylelint --fix ./{packages,site}/**/*.{vue,less} --custom-syntax",
     "test:unit": "jest --passWithNoTests --config=./jest.config.js",
     "test:alert": "lerna run --scope @bkui-vue/alert test",
     "cz": "git-cz"
@@ -105,21 +100,14 @@
   "module": "lib/index.js",
   "typings": "lib/index.d.ts",
   "lint-staged": {
-    "scripts/**/*.(vue|ts|tsx|js)": [
-      "eslint ./scripts --ext .js,.tsx,.ts --cache --fix",
-      "git add"
+    "*.{js,json}": [
+      "npx prettier --write"
     ],
-    "site/**/*.(vue|ts|tsx|js)": [
-      "eslint ./site --ext .js,.tsx,.ts,.vue --cache --fix --ignore-pattern site/dist/",
-      "git add"
+    "*.{ts?(x)}": [
+      "npx eslint --fix --color"
     ],
-    "packages/**/*.(vue|ts|tsx|js)": [
-      "eslint ./packages --ext .js,.tsx,.ts --cache --fix",
-      "git add"
-    ],
-    "*.(vue|scss|css|sass|less)": [
-      "stylelint --cache --fix",
-      "git add"
+    "*.vue": [
+      "npx eslint --fix --color"
     ]
   },
   "config": {
