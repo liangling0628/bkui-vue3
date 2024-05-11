@@ -24,5 +24,5 @@
  * IN THE SOFTWARE.
  */
 module.exports = {
-  extends: ['@blueking/bkmonitor-lint/stylelint.js'],
+  extends: ['@blueking/bkui-lint/stylelint.js'],
 };
