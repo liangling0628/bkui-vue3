@@ -1055,10 +1055,10 @@
   resolved "https://mirrors.tencent.com/npm/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@blueking/bkmonitor-lint@0.0.7":
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/@blueking/bkmonitor-lint/-/bkmonitor-lint-0.0.7.tgz#49e871c35da50e5667fc3a1004d4082349e5e91f"
-  integrity sha512-7gFo8ILliEsPt1Csbu2YHW9yOM2OCKa7yLxEvwHHzzzcYKjSijL5PDg0bkQjUMyqh8diRn2Un3XBiymTXar21Q==
+"@blueking/bkui-lint@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@blueking/bkui-lint/-/bkui-lint-0.0.3.tgz#8a355f23b03254e5c0ec224696f91ca37200e4f9"
+  integrity sha512-rK2g22R5nxpL2/94sxrn1n7YN+iqdcL5evIEo2vr9mihLTWJUDfXURTRtEjU3ukQyk1mUTDGeGZV43yw6Da2gw==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^7.8.0"
     "@typescript-eslint/parser" "^7.8.0"
