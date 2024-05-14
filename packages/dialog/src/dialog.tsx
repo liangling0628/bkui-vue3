@@ -24,22 +24,43 @@
  * IN THE SOFTWARE.
  */
 
-import { computed, defineComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, defineComponent, reactive, ref } from 'vue';
 
 import Button from '@bkui-vue/button';
 import { useLocale, usePrefix } from '@bkui-vue/config-provider';
-import { Close, Error, Spinner, Success, Warn } from '@bkui-vue/icon';
+import { Error } from '@bkui-vue/icon';
 import Modal from '@bkui-vue/modal';
 
 import props from './props';
 
 export default defineComponent({
-  // eslint-disable-next-line vue/no-reserved-component-names
   name: 'Dialog',
   props,
-  emits: ['closed', 'update:isShow', 'confirm', 'prev', 'next', 'value-change'],
+  emits: {
+    closed: () => true,
+    shown: () => true,
+    hidden: () => true,
+    'update:isShow': (value: boolean) => value !== undefined,
+    confirm: () => true,
+    prev: () => true,
+    next: () => true,
+  },
   setup(props, { emit }) {
     const t = useLocale('dialog');
+
+    const { resolveClassName } = usePrefix();
+
+    const isMoveing = ref(false);
+
+    const data = reactive({
+      positionX: 0,
+      positionY: 0,
+      moveStyle: {
+        top: '50%',
+        left: '50%',
+      },
+    });
+
     const localConfirmText = computed(() => {
       if (props.confirmText === undefined) {
         return t.value.ok;
@@ -65,44 +86,6 @@ export default defineComponent({
       return props.nextText;
     });
 
-    const data = reactive({
-      positionX: 0,
-      positionY: 0,
-      moveStyle: {
-        top: '50%',
-        left: '50%',
-      },
-    });
-    const isModalShow = ref(props.isShow);
-    onMounted(() => {
-      if (props.escClose) {
-        addEventListener('keydown', escCloseHandler);
-      }
-    });
-    onBeforeUnmount(() => {
-      if (props.escClose) {
-        removeEventListener('keydown', escCloseHandler);
-      }
-    });
-    watch(
-      () => props.isShow,
-      (val: Boolean) => {
-        if (!val) {
-          setTimeout(() => {
-            data.moveStyle = {
-              top: '50%',
-              left: '50%',
-            };
-            data.positionX = 0;
-            data.positionY = 0;
-            isModalShow.value = false;
-          }, 250);
-        } else {
-          isModalShow.value = true;
-        }
-        emit('value-change', val);
-      },
-    );
     // 关闭弹框
     const handleClose = async () => {
       let shouldClose = true;
@@ -113,24 +96,22 @@ export default defineComponent({
       if (shouldClose) {
         emit('update:isShow', false);
         emit('closed');
-        isModalShow.value = false;
       }
     };
+
     const handleConfirm = () => {
       emit('update:isShow', false);
       emit('confirm');
-      // isModalShow.value = false; 影响异步关闭
     };
 
-    const hasFooter = computed(() => ['process', 'operation', 'confirm'].includes(props.dialogType));
-    // 按 esc 关闭弹框
-    const escCloseHandler = e => {
-      if (props.isShow && props.closeIcon) {
-        if (e.keyCode === 27) {
-          handleClose();
-        }
-      }
+    const handleShown = () => {
+      emit('shown');
     };
+
+    const handleHidden = () => {
+      emit('hidden');
+    };
+
     // 上一步
     const handlePrevStep = () => {
       emit('prev');
@@ -141,7 +122,7 @@ export default defineComponent({
     };
 
     // 拖拽事件
-    const moveHandler = e => {
+    const handleMousedown = e => {
       if (props.fullscreen) {
         return false;
       }
@@ -160,6 +141,8 @@ export default defineComponent({
         disX = e.clientX - odiv.offsetLeft;
         disY = e.clientY - odiv.offsetTop;
       }
+      isMoveing.value = true;
+
       document.onmousemove = e => {
         const boxLeft = window.innerWidth - parentWidth;
         const boxTop = window.innerHeight - parentHeight;
@@ -180,59 +163,45 @@ export default defineComponent({
         data.moveStyle.left = `calc(50% + ${left}px)`;
         data.moveStyle.top = `calc(50% + ${top}px)`;
       };
+
       document.onmouseup = () => {
         document.onmousemove = null;
         document.onmouseup = null;
+        isMoveing.value = false;
       };
     };
 
-    const { resolveClassName } = usePrefix();
-
     return {
       data,
-      handleClose,
-      handleConfirm,
-      escCloseHandler,
-      moveHandler,
-      handlePrevStep,
-      handleNextStep,
-      hasFooter,
-      isModalShow,
       localConfirmText,
       localCancelText,
       localPrevText,
       localNextText,
       resolveClassName,
+      handleHidden,
+      handleShown,
+      handleClose,
+      handleConfirm,
+      handleMousedown,
+      handlePrevStep,
+      handleNextStep,
     };
   },
 
   render() {
-    const renderIcon = () => {
-      const iconMap = {
-        loading: <Spinner class={[this.resolveClassName('info-icon'), 'primary']}></Spinner>,
-        warning: <Warn class={[this.resolveClassName('info-icon'), 'warning']}></Warn>,
-        success: <Success class={[this.resolveClassName('info-icon'), 'success']}></Success>,
-        danger: <Close class={[this.resolveClassName('info-icon'), 'danger']}></Close>,
-      };
-      return iconMap[this.infoType];
-    };
-
     const dialogSlot = {
       header: () => [
         <div
-          class={[
-            this.resolveClassName('dialog-tool'),
-            this.fullscreen || !this.draggable ? '' : 'move',
-            this.draggable ? 'content-dragging' : '',
-          ]}
-          onMousedown={this.moveHandler}
+          class={{
+            [this.resolveClassName('dialog-tool')]: true,
+            'is-draggable': !this.fullscreen && this.draggable,
+            'is-dragging': this.draggable,
+          }}
+          onMousedown={this.handleMousedown}
         >
-          {this.$slots.tools?.() ?? ''}
+          {this.$slots.tools?.()}
         </div>,
         <div class={this.resolveClassName('dialog-header')}>
-          <div class={this.resolveClassName('header-icon')}>
-            {this.infoType ? renderIcon() : <slot name='info-icon' />}
-          </div>
           <span
             class={this.resolveClassName('dialog-title')}
             style={`text-align: ${this.headerAlign}`}
@@ -241,109 +210,138 @@ export default defineComponent({
           </span>
         </div>,
       ],
-      default: () => this.$slots.default?.() ?? 'default',
-      footer: () => (
-        <div
-          class={this.resolveClassName('dialog-footer')}
-          style={`text-align: ${this.footerAlign}`}
-        >
-          {this.dialogType === 'process'
-            ? this.$slots.footer?.() ?? (
-                <>
-                  {this.current === 1 ? (
-                    ''
-                  ) : (
-                    <Button
-                      class={this.resolveClassName('dialog-perv')}
-                      onClick={this.handlePrevStep}
-                    >
-                      {this.localPrevText}
-                    </Button>
-                  )}
-                  {this.current === this.totalStep ? (
-                    ''
-                  ) : (
+      default: () => <div class={this.resolveClassName('dialog-content')}>{this.$slots.default()}</div>,
+      footer: () => {
+        if (this.$slots.footer) {
+          return (
+            <div
+              class={this.resolveClassName('dialog-footer')}
+              style={`text-align: ${this.footerAlign}`}
+            >
+              {this.$slots.footer()}
+            </div>
+          );
+        }
+
+        if (!['process', 'operation', 'confirm'].includes(this.dialogType)) {
+          return null;
+        }
+        const renderFooterAction = () => {
+          if (this.dialogType === 'operation') {
+            return (
+              <>
+                <Button
+                  onClick={this.handleConfirm}
+                  theme={this.confirmButtonTheme}
+                  loading={this.isLoading}
+                >
+                  {this.localConfirmText}
+                </Button>
+                <Button
+                  class={this.resolveClassName('dialog-cancel')}
+                  onClick={this.handleClose}
+                  disabled={this.isLoading}
+                >
+                  {this.localCancelText}
+                </Button>
+              </>
+            );
+          }
+          if (this.dialogType === 'confirm') {
+            return (
+              <Button
+                onClick={this.handleConfirm}
+                theme={this.confirmButtonTheme}
+                loading={this.isLoading}
+              >
+                {this.localConfirmText}
+              </Button>
+            );
+          }
+          if (this.dialogType === 'process') {
+            const renderFirstStepBtn = () => {
+              if (this.current === 1) {
+                return (
+                  <Button
+                    class={this.resolveClassName('dialog-perv')}
+                    onClick={this.handlePrevStep}
+                  >
+                    {this.localPrevText}
+                  </Button>
+                );
+              }
+            };
+            const renderStepBtn = () => {
+              if (this.current === this.totalStep) {
+                return (
+                  <>
                     <Button
                       class={this.resolveClassName('dialog-next')}
                       onClick={this.handleNextStep}
                     >
                       {this.localNextText}
                     </Button>
-                  )}
-                  {this.current === this.totalStep ? (
                     <Button
                       onClick={this.handleConfirm}
-                      theme={this.theme}
+                      theme={this.confirmButtonTheme}
                       loading={this.isLoading}
                     >
                       {this.localConfirmText}
                     </Button>
-                  ) : (
-                    ''
-                  )}
-                  <Button
-                    class={this.resolveClassName('dialog-cancel')}
-                    onClick={this.handleClose}
-                    disabled={this.isLoading}
-                  >
-                    {this.localCancelText}
-                  </Button>
-                </>
-              )
-            : ''}
-          {this.dialogType === 'operation'
-            ? this.$slots.footer?.() ?? (
-                <>
-                  <Button
-                    onClick={this.handleConfirm}
-                    theme={this.theme}
-                    loading={this.isLoading}
-                  >
-                    {this.localConfirmText}
-                  </Button>
-                  <Button
-                    class={this.resolveClassName('dialog-cancel')}
-                    onClick={this.handleClose}
-                    disabled={this.isLoading}
-                  >
-                    {this.localCancelText}
-                  </Button>
-                </>
-              )
-            : ''}
-          {this.dialogType === 'confirm'
-            ? this.$slots.footer?.() ?? (
-                <>
-                  <Button
-                    onClick={this.handleConfirm}
-                    theme={this.theme}
-                    loading={this.isLoading}
-                  >
-                    {this.localConfirmText}
-                  </Button>
-                </>
-              )
-            : ''}
-        </div>
-      ),
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      close: () => <Error onClick={this.handleClose} />,
+                  </>
+                );
+              }
+            };
+
+            return (
+              <>
+                {renderFirstStepBtn()}
+                {renderStepBtn()}
+                <Button
+                  class={this.resolveClassName('dialog-cancel')}
+                  onClick={this.handleClose}
+                  disabled={this.isLoading}
+                >
+                  {this.localCancelText}
+                </Button>
+              </>
+            );
+          }
+        };
+        return (
+          <div
+            class={this.resolveClassName('dialog-footer')}
+            style={`text-align: ${this.footerAlign}`}
+          >
+            {renderFooterAction()}
+          </div>
+        );
+      },
+      close: () => <Error />,
     };
 
-    const className = this.resolveClassName('dialog-wrapper ');
-
-    const bodyClass = `${this.scrollable ? 'scroll-able' : ''} ${this.multiInstance ? 'multi-instance' : ''} ${
-      this.hasFooter ? 'has-footer' : 'no-footer'
-    }`;
     return (
       <Modal
-        {...this.$props}
-        class={className}
-        bodyClass={bodyClass}
+        class={{
+          [this.resolveClassName('dialog')]: true,
+          'is-fullscreen': this.fullscreen,
+        }}
+        isShow={this.isShow}
+        fullscreen={this.fullscreen}
+        width={this.fullscreen ? 'auto' : this.width}
+        animateType='fadein'
+        beforeClose={this.beforeClose}
+        closeIcon={this.closeIcon}
+        escClose={this.escClose}
+        quickClose={this.quickClose}
+        showMask={this.showMask}
+        transfer={this.transfer}
+        left={this.fullscreen ? '0px' : this.data.moveStyle.left}
+        top={this.fullscreen ? '0px' : this.data.moveStyle.top}
+        zIndex={this.zIndex}
         onClose={this.handleClose}
-        isShow={this.isModalShow}
-        left={this.data.moveStyle.left}
-        top={this.data.moveStyle.top}
+        onHidden={this.handleHidden}
+        onShown={this.handleShown}
       >
         {dialogSlot}
       </Modal>

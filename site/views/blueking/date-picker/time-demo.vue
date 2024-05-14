@@ -34,6 +34,6 @@ const range2 = ref(['2024-03-11 00:20:00', '2024-06-11 00:20:00']);
 </script>
 <style>
 .common-picker {
-  margin: 0 10px;
+  margin: 10px;
 }
 </style>

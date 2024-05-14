@@ -105,7 +105,6 @@ export default defineComponent({
     const localData = computed(() => {
       const { list = [] } = filter.value as IFilterShape;
       const filterList = list.filter(l => getRegExp(searchValue.value).test(l.value));
-      console.log(' filterList: ', filterList);
       return filterList;
     });
 
@@ -217,10 +216,12 @@ export default defineComponent({
     const renderFilterList = scope => {
       if (scope.data.length) {
         return scope.data.map((item: any) => (
-          <div class='list-item'>
+          <div
+            class='list-item'
+            key={item.value}
+          >
             <Checkbox
               label={item.value}
-              key={item.$index}
               immediateEmitChange={false}
               checked={state.checked.includes(item.value)}
               modelValue={state.checked.includes(item.value)}
