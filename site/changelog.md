@@ -1,26 +1,12 @@
 ## 更新日志
 
-### 1.0.3-beta.65.dialog.1
+### 1.0.3-beta.67
 
 * **[feat]**:
-    - fix: 修复scrollbar keepalive保持组件滚动状态
+    - feature(select): 去除滚动的动画
 
 
-### 1.0.3-beta.62.dialog.2
-
-* **[feat]**:
-    - feat(table|tree): table支持shift多选 & tree增加checkStrictly
-    - feat: 修复构建icon问题
-
-
-### 1.0.3-beta.62.dialog.1
-
-* **[feat]**:
-    - feat(table|tree): table支持shift多选 & tree增加checkStrictly
-    - feat: 修复构建icon问题
-
-
-### 1.0.3-beta.61.dialog.1
+### 1.0.3-beta.66
 
 * **[feat]**:
     - feat(search-select): 支持自定义面板功能
