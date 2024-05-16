@@ -130,7 +130,7 @@ export default defineComponent({
       const value = localList.value.slice(start, end);
       calcList.value = value;
       if (event) {
-        ctx.emit('content-scroll', [event, pagination]);
+        ctx.emit('content-scroll', [event, pagination, value]);
       }
     };
 
@@ -214,7 +214,8 @@ export default defineComponent({
         height,
         width: typeof props.width === 'number' ? `${props.width}px` : props.width,
         display: 'inline-block',
-        maxHeight: props.maxHeight ?? height,
+        maxHeight: props.maxHeight ? `${props.maxHeight}px` : false,
+        minHeight: props.minHeight ? `${props.minHeight}px` : false,
         ...(props.scrollPosition === 'container' ? innerContentStyle.value : {}),
         ...props.wrapperStyle,
       };
@@ -268,6 +269,8 @@ export default defineComponent({
       reset,
       scrollTo,
       fixToTop,
+      refRoot,
+      refContent,
     });
 
     return () =>
