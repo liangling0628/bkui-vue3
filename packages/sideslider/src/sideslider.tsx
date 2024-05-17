@@ -25,7 +25,7 @@
  */
 
 import cloneDeep from 'lodash/cloneDeep';
-import { defineComponent, ref } from 'vue';
+import { defineComponent, getCurrentInstance, useAttrs, useSlots } from 'vue';
 
 import { usePrefix } from '@bkui-vue/config-provider';
 import { AngleLeft, AngleRight } from '@bkui-vue/icon';
@@ -37,6 +37,7 @@ sliderProps.width.default = '400';
 
 export default defineComponent({
   name: 'Sideslider',
+  inheritAttrs: false,
   props: {
     ...sliderProps,
     title: PropTypes.string.def(''),
@@ -56,10 +57,11 @@ export default defineComponent({
 
   emits: ['closed', 'update:isShow', 'shown', 'hidden', 'animation-end'],
 
-  setup(props, { slots, emit }) {
+  setup(props, { emit }) {
+    const attrs = useAttrs();
+    const slots = useSlots();
+    const instance = getCurrentInstance();
     const { resolveClassName } = usePrefix();
-
-    const refRoot = ref();
 
     const handleClose = async () => {
       let shouldClose = true;
@@ -98,6 +100,7 @@ export default defineComponent({
         ),
         default: () => <div class={`${resolveClassName('sideslider-content')}`}>{slots.default?.()}</div>,
       };
+
       if (slots.footer) {
         Object.assign(modelSlot, {
           footer: () => {
@@ -106,9 +109,14 @@ export default defineComponent({
         });
       }
 
+      const inheritAttrs = { ...attrs };
+      if (instance.vnode.scopeId) {
+        inheritAttrs[instance.vnode.scopeId] = '';
+      }
+
       return (
         <Modal
-          ref={refRoot}
+          {...inheritAttrs}
           class={{
             [resolveClassName('sideslider')]: true,
             [`is-position-${props.direction}`]: props.direction,
@@ -121,6 +129,7 @@ export default defineComponent({
           quickClose={props.quickClose}
           showMask={props.showMask}
           transfer={props.transfer}
+          renderDirective={props.renderDirective}
           zIndex={props.zIndex}
           onHidden={handleHidden}
           onShown={handleShown}
