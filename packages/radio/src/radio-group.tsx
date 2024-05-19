@@ -40,6 +40,7 @@ const radioGroupProps = {
   withValidate: PropTypes.bool.def(true),
   type: PropTypes.oneOf(['tab', 'capsule', 'card']).def('tab'),
   size: PropTypes.size(),
+  beforeChange: PropTypes.func,
 };
 
 export type RadioGroupProps = Readonly<ExtractPropTypes<typeof radioGroupProps>>;
@@ -66,7 +67,6 @@ export default defineComponent({
 
     const handleChange: IRadioGroupContext['handleChange'] = checkedRadioInstance => {
       const nextValue = checkedRadioInstance.label;
-
       radioInstanceList.forEach(radioInstance => {
         if (radioInstance !== checkedRadioInstance) {
           radioInstance.setChecked(false);
