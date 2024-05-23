@@ -1,5 +1,49 @@
 ## 更新日志
 
+### 2.0.1-beta.9
+
+* **[feat]**:
+    - 修复 Tree 组件部分样式无 prefix 设置的问题
+
+
+### 2.0.1-beta.8
+
+* **[feat]**:
+    - 修复 Cascader, Tree 组件部分样式无 prefix 设置的问题
+
+### 2.0.1-beta.7
+
+* **[feat]**:
+    - rate 组件样式合并为一份文件
+    - 修复 TimePicker `injection "Symbol(time-picker)" not found` 警告信息
+
+
+### 2.0.1-beta.6
+
+* **[feat]**:
+    - feat(table): 增加 checked prop配置说明 & is-selected-fn 完善参数 & 增加props.checked说明
+    - 修复 Cascader, ColorPicker, Transfer, Upload, Tree 组件部分样式无 prefix 设置的问题
+
+
+### 2.0.1-beta.5
+
+* **[feat]**:
+    - bugfix(dialog): 去掉多余的font-size 设置
+    - feat(table): 支持click + click范围选择
+
+
+### 2.0.1-beta.4
+
+* **[feat]**:
+    - feat: datepicker 支持年份范围选择
+
+
+### 2.0.1-beta.3
+
+* **[feat]**:
+    - feature(select): select options高度支持自定义
+
+
 ### 2.0.1-beta.2
 
 * **[feat]**:
