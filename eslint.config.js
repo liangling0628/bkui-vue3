@@ -27,6 +27,6 @@
 module.exports = [
   ...require('@blueking/bkui-lint/eslint'),
   {
-    ignores: ['node_modules', 'lib', 'dist'],
+    ignores: ['**/node_modules', '**/lib', '**/dist'],
   },
 ];
