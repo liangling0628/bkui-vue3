@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台 (BlueKing PaaS) available.
@@ -26,6 +25,15 @@
  */
 module.exports = [
   ...require('@blueking/bkui-lint/eslint'),
+  {
+    rules: {
+      'vue/multi-word-component-names': 'off',
+      'vue/no-reserved-component-names': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+      'perfectionist/sort-classes': 'off',
+    },
+  },
   {
     ignores: ['**/node_modules', '**/lib', '**/dist'],
   },

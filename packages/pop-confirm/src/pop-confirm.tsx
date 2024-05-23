@@ -88,12 +88,12 @@ export default defineComponent({
     return (
       <Popover
         ref='popoverRef'
-        isShow={this.visible}
-        trigger={this.trigger}
-        theme={this.theme}
         width={this.width}
-        onAfterShow={() => (this.visible = true)}
         extCls={`${this.resolveClassName('pop-confirm-box')}`}
+        isShow={this.visible}
+        theme={this.theme}
+        trigger={this.trigger}
+        onAfterShow={() => (this.visible = true)}
       >
         {{
           default: () => this.$slots.default(),
@@ -115,15 +115,15 @@ export default defineComponent({
               )}
               <div class={`${this.resolveClassName('pop-confirm-footer')}`}>
                 <Button
-                  onClick={this.ensure}
                   size='small'
                   theme='primary'
+                  onClick={this.ensure}
                 >
                   {this.confirmText || this.t.ok}
                 </Button>
                 <Button
-                  onClick={this.cancel}
                   size='small'
+                  onClick={this.cancel}
                 >
                   {this.cancelText || this.t.cancel}
                 </Button>
