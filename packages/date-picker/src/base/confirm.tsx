@@ -144,7 +144,7 @@ export default defineComponent({
               class='confirm'
               href='javascript: void(0);'
               onClick={this.handleSuccess}
-              onKeydown_enter={this.handleSuccess}
+              {...{ onKeydown_enter: this.handleSuccess }}
             >
               {this.labels.ok}
             </a>

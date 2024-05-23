@@ -1,12 +1,12 @@
 /*
  * Tencent is pleased to support the open source community by making
- * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) available.
+ * 蓝鲸智云PaaS平台 (BlueKing PaaS) available.
  *
  * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
- * 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition) is licensed under the MIT License.
+ * 蓝鲸智云PaaS平台 (BlueKing PaaS) is licensed under the MIT License.
  *
- * License for 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community Edition):
+ * License for 蓝鲸智云PaaS平台 (BlueKing PaaS):
  *
  * ---------------------------------------------------
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
@@ -24,37 +24,5 @@
  * IN THE SOFTWARE.
  */
 
-export type TaskRunner<T> = (options?: T) => Promise<void>;
-
-export class Task<TOptions> {
-  options: TOptions = {} as any;
-
-  constructor(
-    public name: string,
-    public runner: TaskRunner<TOptions>,
-  ) {}
-  setName = (name: string) => {
-    this.name = name;
-  };
-  setRunner = (runner: TaskRunner<TOptions>) => {
-    this.runner = runner;
-  };
-  setOptions = (options?: TOptions) => {
-    this.options = options || ({} as any);
-  };
-  exec = () => this.runner(this.options);
-}
-
-export interface ILibTaskOption {
-  analyze: boolean;
-}
-
-export interface ITaskItem {
-  type: 'script' | 'style';
-  url: string;
-  newPath: string;
-}
-
-export interface IReleaseTaskOption {
-  tag: string;
-}
+declare module '*.less';
+declare module '*.svg';

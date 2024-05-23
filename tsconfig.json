@@ -52,6 +52,7 @@
     "./stylelint.config.js",
     "./eslint.config.js",
     "./prettier.config.js",
-    "./*.js"
+    "./*.js",
+    "index.d.ts"
   ]
 }
