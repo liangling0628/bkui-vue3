@@ -91,6 +91,7 @@ export default defineComponent({
         width={this.width}
         extCls={`${this.resolveClassName('pop-confirm-box')}`}
         isShow={this.visible}
+        placement={this.placement}
         theme={this.theme}
         trigger={this.trigger}
         onAfterShow={() => (this.visible = true)}
