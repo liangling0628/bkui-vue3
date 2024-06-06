@@ -26,7 +26,7 @@
 import { ref, watch } from 'vue';
 
 import isElement from 'lodash/isElement';
-import throttle from 'lodash/throttle';
+import { throttle } from '@bkui-vue/shared';
 
 import { COLUMN_ATTRIBUTE } from '../const';
 import { Column } from '../props';
@@ -88,7 +88,7 @@ export default (columns: UseColumns) => {
       if (minWidth < resolveWidth) {
         dragOffsetX.value = e.clientX - startX + dragStartOffsetX;
       }
-    }, 60);
+    });
 
   const handleMouseMove = (e: MouseEvent) => {
     stopDefaultEvent(e);

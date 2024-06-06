@@ -28,7 +28,7 @@ import { isProxy, toRaw } from 'vue';
 
 import debounce from 'lodash/debounce';
 import objGet from 'lodash/get';
-import throttle from 'lodash/throttle';
+import { throttle } from '@bkui-vue/shared';
 import ResizeObserver from 'resize-observer-polyfill';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -183,7 +183,7 @@ export const observerResize = (
       callbackFn();
     }
   };
-  const execFn = resizerWay === 'debounce' ? debounce(resolveCallbackFn, delay) : throttle(resolveCallbackFn, delay);
+  const execFn = resizerWay === 'debounce' ? debounce(resolveCallbackFn, delay) : throttle(resolveCallbackFn);
   const callFn = () => Reflect.apply(execFn, this, []);
 
   const resizeObserver = new ResizeObserver(() => {
