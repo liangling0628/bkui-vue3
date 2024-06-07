@@ -1,5 +1,11 @@
 ## 更新日志
 
+### 2.0.1-beta.17
+
+* **[feat]**:
+    - bugfix(datetimepicker): 修复 range 时，切换下一月的问题
+
+
 ### 2.0.1-beta.16
 
 * **[feat]**:
