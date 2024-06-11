@@ -40,7 +40,6 @@ import useObserverResize from './hooks/use-observer-resize';
 import usePagination from './hooks/use-pagination';
 import useRender from './hooks/use-render';
 import useRows from './hooks/use-rows';
-import useScrollLoading from './hooks/use-scroll-loading';
 import useSettings from './hooks/use-settings';
 import { tableProps } from './props';
 
@@ -245,6 +244,7 @@ export default defineComponent({
       () => [pagination.options.count, pagination.options.limit, pagination.options.current, props.data],
       () => {
         setTableData();
+        refBody.value?.scrollTo(0, 0);
       },
       { immediate: true },
     );
