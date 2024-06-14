@@ -153,14 +153,6 @@ const useColumns = (props: TablePropTypes) => {
     visibleColumns.push(...tableColumnList.filter(col => !isHiddenColumn(col)));
   };
 
-  const headHeight = computed(() => {
-    if (props.showHead) {
-      return props.headHeight;
-    }
-
-    return 0;
-  });
-
   const resolveDraggableColumn = () => {
     if (props.rowDraggable) {
       tableColumnList.unshift({
@@ -268,6 +260,7 @@ const useColumns = (props: TablePropTypes) => {
    * @param columns
    */
   const formatColumns = () => {
+    sortColumns.length = 0;
     resolveDraggableColumn();
     let skipColNum = 0;
     (tableColumnList || []).forEach((col, index) => {
@@ -573,7 +566,6 @@ const useColumns = (props: TablePropTypes) => {
   return {
     needColSpan,
     needRowSpan,
-    headHeight,
     tableColumnSchema,
     tableColumnList,
     visibleColumns,
