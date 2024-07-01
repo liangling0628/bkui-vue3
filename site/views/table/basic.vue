@@ -1,26 +1,32 @@
 <template>
-  <div class="row">
-    <bk-table max-height="464" :data="projectTable" height="300" :fixedBottom="fixedBottom" show-overflow-tooltip
-      :pagination="pagination">
-      <bk-table-column type="selection" :min-width="30" width="30" align="center" />
-      <bk-table-column label="用户组" prop="groupName" :sort="true" />
-      <bk-table-column label="用户描述" prop="groupDesc" />
-      <bk-table-column label="有效期" prop="validityPeriod" />
-      <bk-table-column label="加入时间" prop="joinedTime" />
-      <bk-table-column label="加入方式/操作人" prop="operateSource">
-        <template #default="{ row }">
-          {{ row.operateSource }}/{{ row.operator }}
-        </template>
-      </bk-table-column>
-    </bk-table>
+  <bk-button @click="clearSelection">取消全选</bk-button>
+  <div style="display: grid;">
+    <div>
+      <bk-table ref="refTable" max-height="464" :data="projectTable" height="300" stripe :fixedBottom="fixedBottom"
+        show-overflow-tooltip :pagination="pagination">
+        <bk-table-column type="selection" :min-width="30" width="30" align="center" />
+        <bk-table-column label="用户组" prop="groupName" :sort="true" />
+        <bk-table-column label="用户描述" prop="groupDesc" />
+        <bk-table-column label="有效期" prop="validityPeriod" />
+        <bk-table-column label="加入时间" prop="joinedTime" />
+        <bk-table-column label="加入方式/操作人" prop="operateSource">
+          <template #default="{ row }">
+            {{ row.operateSource }}/{{ row.operator }}
+          </template>
+        </bk-table-column>
+      </bk-table>
+    </div>
   </div>
 </template>
 
 <script setup>
 
 import { ref, reactive } from 'vue'
+const refTable = ref(null);
 const pagination = ref({ count: 11, limit: 10, current: 1 });
-
+const clearSelection = () => {
+  refTable.value.clearSelection();
+};
 const fixedBottom = reactive({
   position: 'relative',
   height: 42

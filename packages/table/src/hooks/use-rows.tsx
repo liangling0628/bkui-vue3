@@ -23,7 +23,7 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, reactive, watch } from 'vue';
+import { reactive, ref } from 'vue';
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,7 +37,7 @@ const useRows = (props: TablePropTypes) => {
   /**
    * 全量数据
    */
-  const tableRowList = computed(() => props.data ?? []);
+  const tableRowList = ref([]);
 
   /**
    * 分页数据
@@ -117,14 +117,6 @@ const useRows = (props: TablePropTypes) => {
     });
   };
 
-  watch(
-    () => [tableRowList],
-    () => {
-      formatDataSchema();
-    },
-    { immediate: true },
-  );
-
   const getSelectionRowArgs = (row, index?) => {
     return {
       row,
@@ -133,7 +125,7 @@ const useRows = (props: TablePropTypes) => {
     };
   };
 
-  const getRowAttribute = (item: IEmptyObject | any, attrName: string) => {
+  const getRowAttribute = (item: IEmptyObject | object, attrName: string) => {
     return tableRowSchema.get(item)?.[attrName];
   };
 
@@ -143,7 +135,7 @@ const useRows = (props: TablePropTypes) => {
     });
   };
 
-  const isRowChecked = (row: any, index: number) => {
+  const isRowChecked = (row: Record<string, unknown>, index: number) => {
     if (isRowSelectEnable(props, { row, index })) {
       return getRowAttribute(row, TABLE_ROW_ATTRIBUTE.ROW_SELECTION);
     }
@@ -151,7 +143,7 @@ const useRows = (props: TablePropTypes) => {
     return true;
   };
 
-  const toggleRowSelection = (row: any) => {
+  const toggleRowSelection = (row: Record<string, unknown>) => {
     if (typeof props.isSelectedFn === 'function') {
       setRowSelection(row, props.isSelectedFn(getSelectionRowArgs(row)));
       return;
@@ -228,7 +220,7 @@ const useRows = (props: TablePropTypes) => {
    * @param attrName
    * @param attrValue
    */
-  const setRowAttribute = (item: any, attrName: string, attrValue: boolean | number | string) => {
+  const setRowAttribute = (item: Record<string, unknown>, attrName: string, attrValue: boolean | number | string) => {
     const row = getRawData(item);
     const target = tableRowSchema.get(row);
     if (target && Object.prototype.hasOwnProperty.call(target, attrName)) {
@@ -241,7 +233,7 @@ const useRows = (props: TablePropTypes) => {
    * @param row
    * @param isSelected
    */
-  const setRowSelection = (row: any, isSelected: boolean, index?: number) => {
+  const setRowSelection = (row: Record<string, unknown>, isSelected: boolean, index?: number) => {
     let value = isSelected;
     if (typeof props.isSelectedFn === 'function') {
       value = props.isSelectedFn(getSelectionRowArgs(row, index));
@@ -258,7 +250,7 @@ const useRows = (props: TablePropTypes) => {
    * @param row
    * @param index
    */
-  const setRowIndex = (row: any, index: number) => {
+  const setRowIndex = (row: Record<string, unknown>, index: number) => {
     setRowAttribute(row, TABLE_ROW_ATTRIBUTE.ROW_INDEX, index);
   };
 
@@ -267,11 +259,11 @@ const useRows = (props: TablePropTypes) => {
    * @param row
    * @param isExpand
    */
-  const setRowExpand = (row: any, isExpand: boolean) => {
+  const setRowExpand = (row: Record<string, unknown>, isExpand: boolean) => {
     setRowAttribute(row, TABLE_ROW_ATTRIBUTE.ROW_EXPAND, isExpand);
   };
 
-  const setPageRowList = (rowList: any[]) => {
+  const setPageRowList = (rowList: Record<string, unknown>[]) => {
     pageRowList.length = 0;
     pageRowList.push(...rowList);
   };
@@ -297,11 +289,18 @@ const useRows = (props: TablePropTypes) => {
   const getRowSelection = () =>
     tableRowList.value.filter(row => getRowAttribute(row, TABLE_ROW_ATTRIBUTE.ROW_SELECTION));
 
+  const setTableRowList = (data: unknown[]) => {
+    tableRowList.value.length = 0;
+    tableRowList.value.push(...data);
+    formatDataSchema();
+  };
+
   return {
     setRowIndex,
     setRowExpand,
     isRowChecked,
     setPageRowList,
+    setTableRowList,
     clearSelection,
     formatDataSchema,
     toggleRowSelection,
@@ -316,6 +315,7 @@ const useRows = (props: TablePropTypes) => {
     changePageRowIndex,
     toggleAllSelection,
     tableRowList,
+    tableRowSchema,
     pageRowList,
   };
 };

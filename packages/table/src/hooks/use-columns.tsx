@@ -23,14 +23,14 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { computed, isRef, reactive, ref, watch } from 'vue';
+import { computed, isRef, reactive, ref, toRaw } from 'vue';
 
 import { useLocale } from '@bkui-vue/config-provider';
 import { debounce } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { COL_MIN_WIDTH, COLUMN_ATTRIBUTE, IEmptyObject } from '../const';
-import { Column, IColSortBehavior, IFilterShape, Settings, TablePropTypes } from '../props';
+import { Column, IColSortBehavior, IFilterShape, IHeadGroup, Settings, TablePropTypes } from '../props';
 import {
   getRowText,
   isColumnHidden,
@@ -47,6 +47,8 @@ const useColumns = (props: TablePropTypes) => {
   const uuid = uuidv4();
   const sortColumns = reactive([]);
   const filterColumns = reactive([]);
+  const columnGroup: Column[][] = reactive([]);
+  const columnGroupMap = new WeakMap<Column, IHeadGroup>();
 
   /**
    * 用来记录列的排序状态
@@ -69,7 +71,7 @@ const useColumns = (props: TablePropTypes) => {
     let colWidth = 0;
     if (/^\d+\.?\d*(px)?$/.test(`${col[attrName]}`)) {
       colWidth = Number(`${col[attrName]}`.replace(/px/, ''));
-      setColumnAttribute(col, COLUMN_ATTRIBUTE.CALC_WIDTH, colWidth);
+      setColumnAttribute(col, COLUMN_ATTRIBUTE.WIDTH, colWidth);
       setColumnRect(col, {
         width: colWidth,
         left: null,
@@ -79,7 +81,7 @@ const useColumns = (props: TablePropTypes) => {
 
     if (/^\d+\.?\d*%$/.test(`${col[attrName]}`)) {
       colWidth = (Number(`${col[attrName]}`.replace(/%/, '')) / 100) * width;
-      setColumnAttribute(col, COLUMN_ATTRIBUTE.CALC_WIDTH, colWidth);
+      setColumnAttribute(col, COLUMN_ATTRIBUTE.WIDTH, colWidth);
       setColumnRect(col, {
         width: colWidth,
         left: null,
@@ -122,7 +124,7 @@ const useColumns = (props: TablePropTypes) => {
 
     autoWidthList.forEach(col => {
       const calcWidth = minColWidth > COL_MIN_WIDTH ? minColWidth : COL_MIN_WIDTH;
-      setColumnAttribute(col, COLUMN_ATTRIBUTE.CALC_WIDTH, calcWidth);
+      setColumnAttribute(col, COLUMN_ATTRIBUTE.WIDTH, calcWidth);
       setColumnRect(col, {
         width: calcWidth,
         left: null,
@@ -212,17 +214,17 @@ const useColumns = (props: TablePropTypes) => {
   };
 
   const resolveEventListener = (col: Column) => {
-    const listeners = getColumnAttribute(col, COLUMN_ATTRIBUTE.LISTENERS) as Map<string, any>;
+    const listeners = getColumnAttribute(col, COLUMN_ATTRIBUTE.LISTENERS) as Map<string, ((...args) => void)[]>;
 
     if (!listeners) {
       return {};
     }
 
-    return Array.from(listeners?.keys()).reduce((handle: any, key: string) => {
+    return Array.from(listeners?.keys()).reduce((handle: Record<string, (...args) => void>, key: string) => {
       const eventName = key.split('_').slice(-1)[0];
       return Object.assign(handle, {
         [eventName]: (e: MouseEvent) => {
-          listeners.get(key).forEach((fn: Function) => Reflect.apply(fn, this, [e, col]));
+          listeners.get(key).forEach(fn => Reflect.apply(fn, this, [e, col]));
         },
       });
     }, {});
@@ -236,7 +238,7 @@ const useColumns = (props: TablePropTypes) => {
     const getRegExp = (val: boolean | number | string, flags = 'ig') =>
       new RegExp(`${val}`.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), flags);
 
-    const defaultFilterFn = (checked: string[], row: any) => {
+    const defaultFilterFn = (checked: string[], row: Record<string, object>) => {
       const { match } = col.filter as IFilterShape;
       const matchText = getRowText(row, resolvePropVal(col, 'field', [col, row]));
       if (match !== 'fuzzy') {
@@ -248,12 +250,86 @@ const useColumns = (props: TablePropTypes) => {
 
     const filterFn =
       typeof (col.filter as IFilterShape).filterFn === 'function'
-        ? (checked: string[], row: any, index: number, data: any[]) =>
+        ? (checked: string[], row: Record<string, object>, index: number, data: Record<string, object>[]) =>
             (col.filter as IFilterShape).filterFn(checked, row, col, index, data)
-        : (checked: string[], row: any) => (checked.length ? defaultFilterFn(checked, row) : true);
+        : (checked: string[], row: Record<string, object>) => (checked.length ? defaultFilterFn(checked, row) : true);
 
     return filterFn;
   };
+
+  /**
+   * 格式化Column嵌套配置，支持多表头设置
+   * @param cols
+   */
+  const flatColumnTemplate = (cols: Column[]) => {
+    columnGroup.length = 0;
+    let maxDepth = 0;
+    const targetColumns = [];
+
+    const getMaxDepth = (root: Column[], depth = 1) => {
+      if (root.length && maxDepth < depth) {
+        maxDepth = depth;
+      }
+
+      root.forEach(col => getMaxDepth(col.children ?? [], depth + 1));
+    };
+
+    getMaxDepth(cols);
+
+    const updateParentThColspan = (col: Column, count: number) => {
+      if (col) {
+        const colMap = columnGroupMap.get(col);
+        colMap.thColspan = colMap.thColspan + count;
+        colMap.offsetLeft = colMap.offsetLeft + count;
+        updateParentThColspan(colMap.parent, count);
+      }
+    };
+
+    const foreachAllColumns = (column: Column, depth: number, parent?: Column, left?: number) => {
+      const col = toRaw(column);
+      let leftColumnCount = left;
+      if (columnGroup[depth] === undefined) {
+        columnGroup[depth] = [];
+      }
+
+      const isGroup = !!(col.children?.length ?? false);
+      if (!(col.children?.length ?? false)) {
+        targetColumns.push(col);
+      }
+
+      if (!columnGroupMap.has(col)) {
+        columnGroupMap.set(col, { thColspan: 1, thRowspan: 1, isGroup, offsetLeft: left });
+      }
+
+      const colMap = columnGroupMap.get(col);
+
+      const childLength = col.children?.length ?? 0;
+      const thColspan = col.children?.length ?? 1;
+      const thRowspan = childLength > 0 ? 1 : maxDepth - depth;
+      const offsetLeft = leftColumnCount + (childLength > 0 ? childLength - 1 : 0);
+
+      Object.assign(colMap, { thColspan: thColspan > 0 ? thColspan : 1, parent, thRowspan, offsetLeft });
+      columnGroup[depth].push(col);
+
+      if (thColspan > 1) {
+        updateParentThColspan(parent, thColspan - 1);
+      }
+
+      col.children?.forEach((c, index) => {
+        leftColumnCount = leftColumnCount + foreachAllColumns(c, depth + 1, col, leftColumnCount + index);
+      });
+      return childLength > 0 ? childLength - 1 : 0;
+    };
+
+    let leftColumnCount = 0;
+    cols.forEach((col, index) => {
+      leftColumnCount = leftColumnCount + foreachAllColumns(col, 0, null, leftColumnCount + index);
+    });
+
+    return targetColumns;
+  };
+
+  const getGroupAttribute = (group: Column) => columnGroupMap.get(group);
 
   /**
    * Format columns
@@ -328,7 +404,7 @@ const useColumns = (props: TablePropTypes) => {
     });
   };
 
-  const setFixedStyle = (column: Column, style: any) => {
+  const setFixedStyle = (column: Column, style: { left?: string; right?: string }) => {
     setColumnAttribute(column, COLUMN_ATTRIBUTE.COL_FIXED_STYLE, style);
   };
 
@@ -344,6 +420,10 @@ const useColumns = (props: TablePropTypes) => {
     return getColumnAttribute(column, COLUMN_ATTRIBUTE.CALC_WIDTH);
   };
 
+  const getColumnWidth = (column: Column) => {
+    return getColumnAttribute(column, COLUMN_ATTRIBUTE.WIDTH);
+  };
+
   type ColumnRect = { left?: number; right?: number; width?: number; height?: number };
   const setColumnRect = (col, { left, right, width, height }: ColumnRect) => {
     const source = getColumnRect(col);
@@ -356,12 +436,13 @@ const useColumns = (props: TablePropTypes) => {
     setColumnAttribute(col, COLUMN_ATTRIBUTE.COL_RECT, target);
   };
 
-  const debounceUpdateColumns = debounce(columns => {
+  const debounceUpdateColumns = debounce((columns, onComplete?) => {
     tableColumnList.length = 0;
-    tableColumnList.push(...columns);
+    tableColumnList.push(...flatColumnTemplate(columns));
     formatColumns();
 
     setVisibleColumns();
+    onComplete?.();
   });
 
   const setColumnIsHidden = (column: Column, value = false) => {
@@ -372,7 +453,7 @@ const useColumns = (props: TablePropTypes) => {
     setColumnAttribute(column, COLUMN_ATTRIBUTE.RESIZE_WIDTH, value);
   };
 
-  const setColumnSortOption = (column: Column, option: Record<string, any>) => {
+  const setColumnSortOption = (column: Column, option: Record<string, object>) => {
     const { type, fn, scope, active } = option;
     const target = {
       [COLUMN_ATTRIBUTE.COL_SORT_TYPE]: type,
@@ -393,13 +474,13 @@ const useColumns = (props: TablePropTypes) => {
     });
   };
 
-  const setColumnFilterOption = (column: Column, option: Record<string, any>) => {
+  const setColumnFilterOption = (column: Column, option: Record<string, object>) => {
     if (tableColumnSchema.has(column)) {
       Object.assign(tableColumnSchema.get(column)[COLUMN_ATTRIBUTE.COL_FILTER_OBJ], option);
     }
   };
 
-  const ORDER_LIST = [COLUMN_ATTRIBUTE.RESIZE_WIDTH, COLUMN_ATTRIBUTE.CALC_WIDTH, COLUMN_ATTRIBUTE.WIDTH];
+  const ORDER_LIST = [COLUMN_ATTRIBUTE.WIDTH];
 
   /**
    * 获取当前列实际宽度
@@ -432,7 +513,18 @@ const useColumns = (props: TablePropTypes) => {
     return getColumnAttribute(col, COLUMN_ATTRIBUTE.COL_UID);
   };
 
-  const beforeAttributeChange = (column: Column, attrName: string, attrValue: any) => {
+  const beforeAttributeChange = (
+    column: Column,
+    attrName: string,
+    attrValue:
+      | ((...args) => boolean | number | string | void)
+      | Record<string, object>
+      | Record<string, object>[]
+      | boolean
+      | number
+      | object
+      | string,
+  ) => {
     const sortAttrs = [COLUMN_ATTRIBUTE.COL_SORT_FN, COLUMN_ATTRIBUTE.COL_SORT_SCOPE, COLUMN_ATTRIBUTE.COL_SORT_TYPE];
     if (sortAttrs.includes(attrName)) {
       setSortColumns(column, { [attrName]: attrValue });
@@ -441,6 +533,15 @@ const useColumns = (props: TablePropTypes) => {
     const filterAttrs = [COLUMN_ATTRIBUTE.COL_FILTER_FN, COLUMN_ATTRIBUTE.COL_FILTER_VALUES];
     if (filterAttrs.includes(attrName)) {
       setFilterColumns(column, { [attrName]: attrValue });
+    }
+  };
+
+  const setNextColumnWidth = (col: Column, newWidth: number) => {
+    const index = visibleColumns.findIndex(item => item === col);
+    const diffWidth = getColumnOrderWidth(col) - newWidth;
+    const nextColumn = visibleColumns[index + 1];
+    if (nextColumn) {
+      setColumnAttribute(nextColumn, COLUMN_ATTRIBUTE.WIDTH, getColumnOrderWidth(nextColumn) + diffWidth);
     }
   };
 
@@ -455,10 +556,11 @@ const useColumns = (props: TablePropTypes) => {
     attrName: string,
     attrValue:
       | ((...args) => boolean | number | string | void)
-      | Record<string, any>
-      | any[]
+      | Record<string, object>
+      | Record<string, object>[]
       | boolean
       | number
+      | object
       | string,
   ) => {
     beforeAttributeChange(col, attrName, attrValue);
@@ -473,7 +575,7 @@ const useColumns = (props: TablePropTypes) => {
     }
   };
 
-  const setColumnAttributeBySettings = (settings: any, checkedVal?: string[]) => {
+  const setColumnAttributeBySettings = (settings: Settings, checkedVal?: string[]) => {
     const checked = checkedVal || settings.checked || [];
     const settingFields = settings.fields || [];
 
@@ -517,7 +619,7 @@ const useColumns = (props: TablePropTypes) => {
    * @param row
    * @private
    */
-  const getColumnCustomClass = (column, row?: any) => {
+  const getColumnCustomClass = (column, row?: Record<string, object>) => {
     const rowClass = column.className;
     if (rowClass) {
       if (typeof rowClass === 'function') {
@@ -544,14 +646,6 @@ const useColumns = (props: TablePropTypes) => {
     setColumnAttribute(column, COLUMN_ATTRIBUTE.COL_SORT_ACTIVE, active);
   };
 
-  watch(
-    () => [props.columns],
-    () => {
-      debounceUpdateColumns(props.columns);
-    },
-    { immediate: true },
-  );
-
   /**
    * 清理列排序
    * @param reset 是否重置表格数据
@@ -563,6 +657,17 @@ const useColumns = (props: TablePropTypes) => {
     });
   };
 
+  /**
+   * 清理表头全选操作
+   */
+  const clearSelectionAll = () => {
+    const col = visibleColumns.find(item => item.type === 'selection');
+    if (col) {
+      setColumnAttribute(col, COLUMN_ATTRIBUTE.SELECTION_VAL, false);
+      setColumnAttribute(col, COLUMN_ATTRIBUTE.SELECTION_INDETERMINATE, false);
+    }
+  };
+
   return {
     needColSpan,
     needRowSpan,
@@ -572,8 +677,12 @@ const useColumns = (props: TablePropTypes) => {
     debounceUpdateColumns,
     sortColumns,
     filterColumns,
+    columnGroup,
+    columnGroupMap,
     clearColumnSort,
+    clearSelectionAll,
     formatColumns,
+    flatColumnTemplate,
     isHiddenColumn,
     getColumnId,
     getColumnOrderWidth,
@@ -585,6 +694,8 @@ const useColumns = (props: TablePropTypes) => {
     getColumnCustomClass,
     getColumnRefAttribute,
     getColumnCalcWidth,
+    getColumnWidth,
+    getGroupAttribute,
     resolveEventListener,
     setColumnIsHidden,
     setColumnResizeWidth,
@@ -596,6 +707,7 @@ const useColumns = (props: TablePropTypes) => {
     setFixedStyle,
     setColumnRect,
     setVisibleColumns,
+    setNextColumnWidth,
     resolveColsCalcWidth,
   };
 };

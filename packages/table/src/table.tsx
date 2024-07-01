@@ -26,9 +26,9 @@
 
 import { computed, defineComponent, getCurrentInstance, nextTick, provide, ref, SetupContext, watch } from 'vue';
 
-import { isElement } from 'lodash';
+import { debounce, isElement } from 'lodash';
 
-import { COLUMN_ATTRIBUTE, PROVIDE_KEY_INIT_COL, TABLE_ROW_ATTRIBUTE } from './const';
+import { COLUMN_ATTRIBUTE, PROVIDE_KEY_INIT_COL, SCROLLY_WIDTH, TABLE_ROW_ATTRIBUTE } from './const';
 import { EMIT_EVENT_TYPES } from './events';
 import useColumnResize from './hooks/use-column-resize';
 import useColumnTemplate from './hooks/use-column-template';
@@ -62,6 +62,7 @@ export default defineComponent({
       setFootHeight,
       setDragOffsetX,
       setOffsetRight,
+      setHeaderRowCount,
       refBody,
       refRoot,
     } = useLayout(props, ctx);
@@ -89,14 +90,16 @@ export default defineComponent({
       settings,
     });
 
-    setDragEvents(dragEvents);
+    setDragEvents(dragEvents as Record<string, () => void>);
 
     const { resolveColumns } = useColumnTemplate();
 
     const instance = getCurrentInstance();
     const initTableColumns = () => {
       const children = instance.subTree?.children ?? [];
-      columns.debounceUpdateColumns(resolveColumns(children as any));
+      columns.debounceUpdateColumns(resolveColumns(children), () => {
+        setHeaderRowCount(columns.columnGroup.length);
+      });
     };
 
     provide(PROVIDE_KEY_INIT_COL, initTableColumns);
@@ -108,7 +111,7 @@ export default defineComponent({
      * 计算每一列的实际宽度
      */
     const computedColumnRect = () => {
-      const width = refRoot.value?.offsetWidth ?? 0;
+      const width = refRoot.value?.offsetWidth - (props.scrollbar ? 1 : SCROLLY_WIDTH) ?? 0;
       columns.resolveColsCalcWidth(width);
       resolveFixedColumnStyle();
     };
@@ -120,7 +123,7 @@ export default defineComponent({
     /**
      * table 渲染行
      */
-    const getRenderRowList = (list: any[]) => {
+    const getRenderRowList = (list: Record<string, object>[]) => {
       if (!pagination.isShowPagination.value || props.remotePagination) {
         return list;
       }
@@ -174,7 +177,7 @@ export default defineComponent({
       }
     };
 
-    const setTableData = () => {
+    const setTableData = debounce(() => {
       const filterOrderList = getFilterAndSortList();
       if (!props.remotePagination) {
         pagination.setPagination({ count: filterOrderList.length });
@@ -185,28 +188,49 @@ export default defineComponent({
 
       nextTick(() => {
         setOffsetRight();
+        refBody.value?.scrollTo(0, 0);
       });
-    };
+    }, 64);
+
+    const observerResizing = ref(false);
+    let observerResizingTimer = null;
 
     useObserverResize(refRoot, () => {
-      if ((props.height === '100%' || props.virtualEnabled) && isElement(refRoot.value)) {
-        if (isResizeBodyHeight.value) {
-          setTimeout(() => {
-            isResizeBodyHeight.value = false;
-          });
-          return;
+      if (!observerResizing.value) {
+        observerResizing.value = true;
+        if ((props.height === '100%' || props.virtualEnabled) && isElement(refRoot.value)) {
+          if (isResizeBodyHeight.value) {
+            setTimeout(() => {
+              isResizeBodyHeight.value = false;
+            });
+            return;
+          }
+          const tableHeight = refRoot.value.offsetHeight;
+          isResizeBodyHeight.value = true;
+          setBodyHeight(tableHeight);
+          setOffsetRight();
         }
-        const tableHeight = refRoot.value.offsetHeight;
-        isResizeBodyHeight.value = true;
-
-        setBodyHeight(tableHeight);
+        computedColumnRect();
         setOffsetRight();
+        refBody.value?.scrollTo(0, 0);
+        return;
       }
 
-      computedColumnRect();
-      refBody.value?.scrollTo(0, 0);
-      setOffsetRight();
+      observerResizingTimer && clearTimeout(observerResizingTimer);
+      observerResizingTimer = setTimeout(() => {
+        observerResizing.value = false;
+      });
     });
+
+    watch(
+      () => [props.columns],
+      () => {
+        columns.debounceUpdateColumns(props.columns, () => {
+          setHeaderRowCount(columns.columnGroup.length);
+        });
+      },
+      { immediate: true },
+    );
 
     watch(
       () => [dragOffsetX.value],
@@ -226,9 +250,7 @@ export default defineComponent({
     watch(
       () => [columns.sortColumns, columns.filterColumns],
       () => {
-        nextTick(() => {
-          setTableData();
-        });
+        setTableData();
       },
       { deep: true },
     );
@@ -242,12 +264,18 @@ export default defineComponent({
     );
 
     watch(
-      () => [pagination.options.count, pagination.options.limit, pagination.options.current, props.data],
+      () => [props.data],
+      () => {
+        rows.setTableRowList(props.data);
+        setTableData();
+      },
+      { immediate: true, deep: true },
+    );
+
+    watch(
+      () => [pagination.options.count, pagination.options.limit, pagination.options.current],
       () => {
         setTableData();
-        nextTick(() => {
-          refBody.value?.scrollTo(0, 1);
-        });
       },
       { immediate: true },
     );
@@ -255,7 +283,10 @@ export default defineComponent({
     ctx.expose({
       setRowExpand: rows.setRowExpand,
       setAllRowExpand: rows.setAllRowExpand,
-      clearSelection: rows.clearSelection,
+      clearSelection: () => {
+        rows.clearSelection();
+        columns.clearSelectionAll();
+      },
       toggleAllSelection: rows.toggleAllSelection,
       toggleRowSelection: rows.toggleRowSelection,
       getSelection: rows.getRowSelection,

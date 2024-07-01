@@ -24,15 +24,14 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-import { Cancellable, throttle } from '@bkui-vue/shared';
+import { debounce, throttle } from 'lodash';
 
 import canUseDOM from './can-use-dom';
 import * as helpers from './helpers';
 import resolveWheelEvent from './mouse-wheel';
 import scrollbarWidth from './scrollbar-width';
-import { debounce } from 'lodash';
 
-interface DebouncedFunc<T extends (...args: any[]) => any> {
+interface DebouncedFunc<T extends (...args) => void> {
   /**
    * Call the original function, but applying the debounce rules.
    *
@@ -73,6 +72,7 @@ export interface Options {
   autoHide: boolean;
   useSystemScrollXBehavior?: boolean;
   useSystemScrollYBehavior?: boolean;
+  size: 'default' | 'small';
   scrollDelegate: {
     scrollHeight?: number;
     scrollWidth?: number;
@@ -80,7 +80,7 @@ export interface Options {
   onScrollCallback?: (args: { x: number; y: number }) => void;
 }
 
-export type SimpleBarOptions = Partial<Options>;
+export type BkScrollBarOptions = Partial<Options>;
 
 type ClassNames = {
   contentEl: string;
@@ -113,13 +113,13 @@ type AxisProps = {
   isOverflowing: boolean;
   forceVisible: boolean;
   track: {
-    size: any;
+    size: number;
     el: HTMLElement | null;
     rect: DOMRect | null;
     isVisible: boolean;
   };
   scrollbar: {
-    size: any;
+    size: number;
     el: HTMLElement | null;
     rect: DOMRect | null;
     isVisible: boolean;
@@ -149,6 +149,7 @@ export default class BkScrollbarCore {
     scrollbarMinSize: 25,
     scrollbarMaxSize: 0,
     ariaLabel: 'scrollable content',
+    size: 'default',
     classNames: {
       contentEl: 'bk-content',
       wrapper: 'bk-wrapper',
@@ -288,11 +289,11 @@ export default class BkScrollbarCore {
    */
   wrapperScrollMap = {};
 
-  onMouseMove: (() => void) | Cancellable<any> = () => {};
-  onWindowResize: (() => void) | DebouncedFunc<any> = () => {};
-  onStopScrolling: (() => void) | DebouncedFunc<any> = () => {};
-  onMouseEntered: (() => void) | DebouncedFunc<any> = () => {};
-  onMouseWheel: (() => void) | DebouncedFunc<any> = () => {};
+  onMouseMove: (() => void) | DebouncedFunc<(...args) => void> = () => {};
+  onWindowResize: (() => void) | DebouncedFunc<(...args) => void> = () => {};
+  onStopScrolling: (() => void) | DebouncedFunc<(...args) => void> = () => {};
+  onMouseEntered: (() => void) | DebouncedFunc<(...args) => void> = () => {};
+  onMouseWheel: (() => void) | DebouncedFunc<(...args) => void> = () => {};
 
   // eslint-disable-next-line @typescript-eslint/member-ordering
   constructor(element: HTMLElement, options: Partial<Options> = {}) {
@@ -335,11 +336,11 @@ export default class BkScrollbarCore {
       throw new Error(`Argument passed to SimpleBar must be an HTML element instead of ${this.el}`);
     }
 
-    this.onMouseMove = throttle(this.mOnMouseMove);
+    this.onMouseMove = throttle(this.mOnMouseMove, 64);
     this.onWindowResize = debounce(this.mOnWindowResize, 64);
     this.onStopScrolling = debounce(this.mOnStopScrolling, 64);
     this.onMouseEntered = debounce(this.mOnMouseEntered, 64);
-    this.mouseWheelInstance = resolveWheelEvent(throttle(this.mOnMouseWheel));
+    this.mouseWheelInstance = resolveWheelEvent(this.mOnMouseWheel);
 
     this.init();
   }
@@ -572,6 +573,39 @@ export default class BkScrollbarCore {
 
     scrollbar.el.style.transform =
       axis === 'x' ? `translate3d(${handleOffset}px, 0, 0)` : `translate3d(0, ${handleOffset}px, 0)`;
+
+    // const translateAxis = axis === 'x' ? 'translateX' : 'translateY';
+    // anime({
+    //   targets: scrollbar.el,
+    //   [translateAxis]: handleOffset,
+    //   duration: 300,
+    //   easing: 'easeOutQuad',
+    //   complete: () => {
+    //     this.options?.onScrollCallback?.({
+    //       x: this.wrapperScrollValue.scrollLeft,
+    //       y: this.wrapperScrollValue.scrollTop,
+    //     });
+    //   },
+    // });
+
+    // if (!this.isDragging) {
+    //   const translateAxis = axis === 'x' ? 'translateX' : 'translateY';
+    //   anime({
+    //     targets: scrollbar.el,
+    //     [translateAxis]: handleOffset,
+    //     duration: 300,
+    //     easing: 'easeOutQuad',
+    //     complete: () => {
+    //       this.options?.onScrollCallback?.({
+    //         x: this.wrapperScrollValue.scrollLeft,
+    //         y: this.wrapperScrollValue.scrollTop,
+    //       });
+    //     },
+    //   });
+    // } else {
+    //   scrollbar.el.style.transform =
+    //     axis === 'x' ? `translate3d(${handleOffset}px, 0, 0)` : `translate3d(0, ${handleOffset}px, 0)`;
+    // }
   }
 
   toggleTrackVisibility(axis: Axis = 'y') {
@@ -693,7 +727,7 @@ export default class BkScrollbarCore {
   }
 
   onMouseLeave = () => {
-    (this.onMouseMove as DebouncedFunc<any>).cancel();
+    (this.onMouseMove as DebouncedFunc<(...args) => void>).cancel();
 
     if (this.axis.x.isOverflowing || this.axis.x.forceVisible) {
       this.onMouseLeaveForAxis('x');
@@ -718,7 +752,7 @@ export default class BkScrollbarCore {
     }
   }
 
-  onPointerEvent = (e: any) => {
+  onPointerEvent = (e: PointerEvent) => {
     if (!this.axis.x.track.el || !this.axis.y.track.el || !this.axis.x.scrollbar.el || !this.axis.y.scrollbar.el)
       return;
 
@@ -768,7 +802,7 @@ export default class BkScrollbarCore {
   /**
    * on scrollbar handle drag movement starts
    */
-  onDragStart(e: any, axis: Axis = 'y') {
+  onDragStart(e: MouseEvent, axis: Axis = 'y') {
     this.isDragging = true;
     const elDocument = getElementDocument(this.el);
     const elWindow = getElementWindow(this.el);
@@ -780,7 +814,8 @@ export default class BkScrollbarCore {
     this.draggedAxis = axis;
 
     addClasses(this.el, this.classNames.dragging);
-
+    document.body.setAttribute('data-user-select', this.el.style.getPropertyValue('user-select'));
+    document.body.style.setProperty('user-select', 'none');
     elDocument.addEventListener('mousemove', this.drag, true);
     elDocument.addEventListener('mouseup', this.onEndDrag, true);
     if (this.removePreventClickId === null) {
@@ -795,7 +830,7 @@ export default class BkScrollbarCore {
   /**
    * Drag scrollbar handle
    */
-  drag = (e: any) => {
+  drag = (e: MouseEvent) => {
     if (!this.draggedAxis || !this.wrapperEl) return;
 
     let eventOffset;
@@ -867,6 +902,7 @@ export default class BkScrollbarCore {
 
     if (scrollValue !== resolvedValue) {
       this.fixedScrollTo(axisValue, resolvedValue);
+
       return true;
     }
 
@@ -927,7 +963,7 @@ export default class BkScrollbarCore {
   /**
    * End scroll handle drag
    */
-  onEndDrag = (e: any) => {
+  onEndDrag = (e: MouseEvent) => {
     this.isDragging = false;
     const elDocument = getElementDocument(this.el);
     const elWindow = getElementWindow(this.el);
@@ -935,6 +971,9 @@ export default class BkScrollbarCore {
     e.stopPropagation();
 
     removeClasses(this.el, this.classNames.dragging);
+
+    document.body.style.setProperty('user-select', this.el.getAttribute('data-user-select'));
+
     this.onStopScrolling();
 
     elDocument.removeEventListener('mousemove', this.drag, true);
@@ -952,12 +991,12 @@ export default class BkScrollbarCore {
   /**
    * Handler to ignore click events during drag
    */
-  preventClick = (e: any) => {
+  preventClick = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  onTrackClick(e: any, axis: Axis = 'y') {
+  onTrackClick(e: MouseEvent, axis: Axis = 'y') {
     const currentAxis = this.axis[axis];
     if (!this.options.clickOnTrack || !currentAxis.scrollbar.el || !this.wrapperEl) return;
 
@@ -1043,10 +1082,10 @@ export default class BkScrollbarCore {
     }
 
     // Cancel all debounced functions
-    (this.onMouseMove as DebouncedFunc<any>).cancel();
-    (this.onWindowResize as DebouncedFunc<any>).cancel();
-    (this.onStopScrolling as DebouncedFunc<any>).cancel();
-    (this.onMouseEntered as DebouncedFunc<any>).cancel();
+    (this.onMouseMove as DebouncedFunc<(...args) => void>).cancel();
+    (this.onWindowResize as DebouncedFunc<(...args) => void>).cancel();
+    (this.onStopScrolling as DebouncedFunc<(...args) => void>).cancel();
+    (this.onMouseEntered as DebouncedFunc<(...args) => void>).cancel();
   }
 
   /**
@@ -1071,7 +1110,8 @@ export default class BkScrollbarCore {
   /**
    * Find element children matches query
    */
-  findChild(el: any, query: any) {
+  findChild(el: HTMLElement, query: string) {
+    // @ts-ignore
     const matches = el.matches || el.webkitMatchesSelector || el.mozMatchesSelector || el.msMatchesSelector;
     return Array.prototype.filter.call(el.children, child => matches.call(child, query))[0];
   }
@@ -1118,7 +1158,7 @@ export default class BkScrollbarCore {
     this.isMouseEntering = false;
   };
 
-  private mOnMouseMove = (e: any) => {
+  private mOnMouseMove = (e: MouseEvent) => {
     this.mouseX = e.clientX;
     this.mouseY = e.clientY;
 
