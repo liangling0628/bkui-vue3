@@ -45,12 +45,12 @@ import {
   resolvePropVal,
   resolveWidth,
 } from '../utils';
+import useCell from './use-cell';
 import { UseColumns } from './use-columns';
 import useHead from './use-head';
 import { UsePagination } from './use-pagination';
 import { UseRows } from './use-rows';
 import { UseSettings } from './use-settings';
-import useCell from './use-cell';
 import useShiftKey from './use-shift-key';
 type RenderType = {
   props: TablePropTypes;
@@ -108,14 +108,14 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
     return (
       <>
         <thead style={rowStyle}>
-          <TableRow>
+          {columns.columnGroup.map((cols, rowIndex) => (
             <tr>
-              {columns.visibleColumns.map((column, index: number) => {
-                const { getTH } = useHead({ props, ctx, columns, column, index, rows });
+              {cols.map((column, index: number) => {
+                const { getTH } = useHead({ props, ctx, columns, column, index, rows, rowIndex });
                 return getTH();
               })}
             </tr>
-          </TableRow>
+          ))}
         </thead>
       </>
     );
@@ -142,14 +142,14 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
    * 渲染Table Body
    * @returns
    */
-  const renderRows = (dataList: any[]) => {
+  const renderRows = (dataList: Record<string, object>[]) => {
     let preRow = {};
     const rowSpanMap = new WeakMap();
     const needRowSpan = columns.needRowSpan.value;
 
     return (
       <tbody>
-        {dataList.map((row: any, rowIndex: number) => {
+        {dataList.map((row: Record<string, object>, rowIndex: number) => {
           const result = getRowRender(row, rowIndex, preRow, dataList, rowSpanMap, needRowSpan);
           preRow = row;
           return result;
@@ -158,7 +158,7 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
     );
   };
 
-  const getRowHeight = (row?: any, rowIndex?: number) => {
+  const getRowHeight = (row?: Record<string, object>, rowIndex?: number) => {
     if (typeof props.rowHeight === 'function' || /^\d+/.test(`${props.rowHeight}`)) {
       return resolvePropVal(props, 'rowHeight', ['tbody', row, rowIndex]);
     }
@@ -171,7 +171,7 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
     return LINE_HEIGHT;
   };
 
-  const setDragEvents = (events: Record<string, Function>) => {
+  const setDragEvents = (events: Record<string, () => void>) => {
     dragEvents = events;
   };
 
@@ -220,7 +220,12 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
    * @param index
    * @param rows
    */
-  const handleRowClick = (e: MouseEvent, row: any, index: number, rows: any) => {
+  const handleRowClick = (
+    e: MouseEvent,
+    row: Record<string, object>,
+    index: number,
+    rows: Record<string, object>[],
+  ) => {
     ctx.emit(EMIT_EVENTS.ROW_CLICK, e, row, index, rows);
   };
 
@@ -231,19 +236,40 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
    * @param index
    * @param rows
    */
-  const handleRowDblClick = (e: MouseEvent, row: any, index: number, rows: any) => {
+  const handleRowDblClick = (
+    e: MouseEvent,
+    row: Record<string, object>,
+    index: number,
+    rows: Record<string, object>[],
+  ) => {
     ctx.emit(EMIT_EVENTS.ROW_DBL_CLICK, e, row, index, rows);
   };
 
-  const handleRowEnter = (e: MouseEvent, row: any, index: number, rows: any) => {
+  const handleRowEnter = (
+    e: MouseEvent,
+    row: Record<string, object>,
+    index: number,
+    rows: Record<string, object>[],
+  ) => {
     ctx.emit(EMIT_EVENTS.ROW_MOUSE_ENTER, e, row, index, rows);
   };
 
-  const handleRowLeave = (e: MouseEvent, row: any, index: number, rows: any) => {
+  const handleRowLeave = (
+    e: MouseEvent,
+    row: Record<string, object>,
+    index: number,
+    rows: Record<string, object>[],
+  ) => {
     ctx.emit(EMIT_EVENTS.ROW_MOUSE_LEAVE, e, row, index, rows);
   };
 
-  const getRowSpanConfig = (row: any, rowIndex, preRow: any, col: Column, store: WeakMap<Object, any>) => {
+  const getRowSpanConfig = (
+    row: Record<string, object>,
+    rowIndex,
+    preRow: Record<string, object>,
+    col: Column,
+    store: WeakMap<object, WeakMap<Column, { skipRowLen: number; skipRow: boolean }>>,
+  ) => {
     if (!store.has(row)) {
       store.set(row, new WeakMap());
     }
@@ -270,7 +296,15 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
     return { skipRowLen, skipRow };
   };
 
-  const getRowRender = (row: any, rowIndex: number, preRow: any, rowList, rowSpanMap, needRowSpan, isChild = false) => {
+  const getRowRender = (
+    row: Record<string, object>,
+    rowIndex: number,
+    preRow: Record<string, object>,
+    rowList,
+    rowSpanMap,
+    needRowSpan,
+    isChild = false,
+  ) => {
     const rowLength = rowList.length;
     const rowStyle = [
       ...formatPropAsArray(props.rowStyle, [row, rowIndex]),
@@ -335,7 +369,17 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
 
               const columnKey = `${rowId}_${index}`;
               const cellKey = `${rowId}_${index}_cell`;
-              const { renderCell } = useCell({ props, rows, ctx, columns, row, index, column, isChild, multiShiftKey });
+              const { renderCell } = useCell({
+                props,
+                rows,
+                ctx,
+                columns,
+                row,
+                index: rowIndex,
+                column,
+                isChild,
+                multiShiftKey,
+              });
 
               const handleEmit = (event, type: string) => {
                 const args = {
@@ -357,16 +401,16 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
                   style={cellStyle}
                   class={cellClass}
                   colspan={colspan}
-                  rowspan={rowspan}
                   data-id={columnKey}
+                  rowspan={rowspan}
                   onClick={event => handleEmit(event, EMIT_EVENTS.CELL_CLICK)}
                   onDblclick={event => handleEmit(event, EMIT_EVENTS.CELL_DBL_CLICK)}
                 >
                   <TableCell
                     key={cellKey}
-                    data-id={cellKey}
                     class={tdCtxClass}
                     column={column}
+                    data-id={cellKey}
                     observerResize={props.observerResize}
                     parentSetting={props.showOverflowTooltip}
                     row={row}
@@ -385,7 +429,7 @@ export default ({ props, ctx, columns, rows, pagination, settings }: RenderType)
     ];
   };
 
-  const renderExpandRow = (row: any, rowClass: any[], _rowIndex?) => {
+  const renderExpandRow = (row: Record<string, object>, rowClass: Record<string, object>[], _rowIndex?) => {
     const isExpand = rows.getRowAttribute(row, TABLE_ROW_ATTRIBUTE.ROW_EXPAND);
     if (isExpand) {
       const resovledClass = [...rowClass, { row_expend: true }];
