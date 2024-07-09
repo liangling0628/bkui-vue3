@@ -1,6 +1,23 @@
 ## 更新日志
 
 
+### 2.0.1-beta.33
+
+* **[feat]**:
+    - bugfix(select): 修复list模式下全选交互问题
+    - feat(search-select): 去除 `/` 分割
+    - feat(docs): progress/switcher/breadcrumb/overflow-title 文档优化
+    - docs(tab|notify): 文档补全
+
+
+### 2.0.1-beta.32
+
+* **[feat]**:
+    - bugfix(table): 多表头导致拖拽列错位问题
+    - feature(docs): badge\collapse\tag\card\slider 文档优化
+    - feat(search-select): 文档和代码优化
+
+
 ### 2.0.1-beta.31
 
 * **[feat]**:
