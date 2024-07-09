@@ -1,6 +1,24 @@
 ## 更新日志
 
 
+### 2.0.1-beta.34
+
+* **[feat]**:
+    - feat(table｜tree)：table展开收起单元格tooltip提示禁用 & tree支持selected事件抛出 & tree check-strictly属性支持
+    - feat(upload): 支持纯文件流上传
+    - docs(rate): 文档补全
+    - feature(select|resize): 完善select和resize文档
+
+
+### 2.0.1-beta.33
+
+* **[feat]**:
+    - bugfix(select): 修复list模式下全选交互问题
+    - feat(search-select): 去除 `/` 分割
+    - feat(docs): progress/switcher/breadcrumb/overflow-title 文档优化
+    - docs(tab|notify): 文档补全
+
+
 ### 2.0.1-beta.32
 
 * **[feat]**:
