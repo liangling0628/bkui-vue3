@@ -1,6 +1,24 @@
 ## 更新日志
 
 
+### 2.0.1-beta.37
+
+* **[feat]**:
+    - feat: prop.isEmptyCell 支持为空判定配置
+
+
+### 2.0.1-beta.36
+
+* **[feat]**:
+    - bugfix: 修复lodash isEmpty判定number类型为true的问题
+
+
+### 2.0.1-beta.35
+
+* **[feat]**:
+    - feat(tree): setSelect & setChecked 参数调整
+
+
 ### 2.0.1-beta.34
 
 * **[feat]**:
