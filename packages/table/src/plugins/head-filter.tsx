@@ -107,7 +107,7 @@ export default defineComponent({
       const { list = [] } = filter.value as IFilterShape;
       const filterList = list.filter(l => {
         const reg = getRegExp(searchValue.value);
-        return reg.test(l.label) ||  reg.test(l.label) || reg.test(l.value);
+        return reg.test(l.label) || reg.test(l.label) || reg.test(l.value);
       });
       return filterList;
     });
