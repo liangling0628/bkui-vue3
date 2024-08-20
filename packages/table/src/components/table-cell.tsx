@@ -152,8 +152,10 @@ export default defineComponent({
         mode = 'static';
 
         if (typeof props.column.explain === 'object') {
+          // 这里需要处理content为空，提供defaultContent
           content = () =>
-            resolvePropVal(props.column.explain as Record<string, unknown>, 'content', [props.column, props.row]);
+            resolvePropVal(props.column.explain as Record<string, unknown>, 'content', [props.column, props.row]) ||
+            defaultContent;
         }
       }
 
