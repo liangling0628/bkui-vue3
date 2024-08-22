@@ -42,17 +42,18 @@
     }
     return false;
   };
-  const handleBeforeUpload = (file) => {
+  const handleBeforeUpload = (file, fileList) => {
     const whiteList = ['jpg', 'jpeg', 'png', 'zip'];
-    const fileType = file.name.substring(file.name.lastIndexOf('.') + 1);
-    if (!whiteList.includes(fileType)) {
-      fileList.value.pop();
-        Message({
+    let AllFiles = fileList.filter((v) => whiteList.includes(v.name.substring(file.name.lastIndexOf('.') + 1)));
+    if(AllFiles.length !== fileList.length) {
+      fileList.pop();
+      Message({
         theme: 'warning',
         message: '允许上传JPG、PNG、JPEG、ZIP的文件'
-      })
+      });
       return false;
     }
+    return true;
   };
   const handleSelectChange = event => {
     console.log(event, 'change');
