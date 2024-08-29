@@ -1,5 +1,22 @@
 ## 更新日志
 
+### 2.0.1-beta.61
+
+* **[feat]**:
+    - fix: 修复 taginput 中文输入退格删除 tag 问题
+
+
+### 2.0.1-beta.60
+
+* **[feat]**:
+    - form-item, tag-input 小问题修复
+
+
+### 2.0.1-beta.59
+
+* **[feat]**:
+    - bugfix(table): table问题合集
+
 
 ### 2.0.1-beta.58
 
