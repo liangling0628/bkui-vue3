@@ -175,7 +175,7 @@ export default defineComponent({
         };
 
         nextTick(() => {
-          textareaCalcStyle.value = textareaStyle;
+          textareaCalcStyle.value = props.resize ? { ...textareaStyle, ...{ height: '100%' } } : textareaStyle;
         });
       } else {
         textareaCalcStyle.value = {
@@ -537,7 +537,7 @@ export default defineComponent({
             {...inputAttrs}
             {...eventListener}
             {...bindProps.value}
-            style={{ ...textareaCalcStyle.value, ...{ height: '100%' } }}
+            style={textareaCalcStyle.value}
             rows={props.rows}
             {...innerInputValue.value}
           />
