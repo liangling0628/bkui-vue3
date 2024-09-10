@@ -288,7 +288,7 @@ export default defineComponent({
             ref={filterPopoverRef}
             class='list-item'
             v-bk-tooltips={{
-              content: item.tipKey ? item[item.tipKey] : item.text,
+              content: item.tipKey || item.text,
               placement: 'right',
               disabled: resolveOverflowTips(item),
             }}
