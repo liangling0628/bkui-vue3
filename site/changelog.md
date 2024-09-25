@@ -1,6 +1,18 @@
 ## 更新日志
 
 
+### 2.0.1-beta.72
+
+* **[feat]**:
+    - fix(table): 修复chrome最新版本渲染问题
+
+
+### 2.0.1-beta.71
+
+* **[feat]**:
+    - feat(search-select): 更新resize-detector依赖
+
+
 ### 2.0.1-beta.70
 
 * **[feat]**:
