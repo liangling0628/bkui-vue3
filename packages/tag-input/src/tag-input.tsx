@@ -123,16 +123,18 @@ export default defineComponent({
     const renderList = computed(() => {
       if (props.useGroup) {
         const groupMap = {};
-        pageState.curPageList.forEach((item: any, index: number) => {
+        pageState.curPageList.forEach((item: Record<string, unknown>, index: number) => {
+          const groupId = (item.group as { [key: string]: number | string }).groupId;
+          const groupName = (item.group as { [key: string]: string }).groupName;
           item.__index__ = index;
-          if (!groupMap[item.group.groupId]) {
-            groupMap[item.group.groupId] = {
-              id: item.group.groupId,
-              name: item.group.groupName,
+          if (!groupMap[groupId]) {
+            groupMap[groupId] = {
+              id: groupId,
+              name: groupName,
               children: [],
             };
           }
-          groupMap[item.group.groupId].children.push(item);
+          groupMap[groupId].children.push(item);
         });
         return Object.keys(groupMap).map((key: string) => groupMap[key]);
       }
@@ -320,7 +322,7 @@ export default defineComponent({
         initPage(listState.localList);
         return;
       }
-      let filterData: any[] = [];
+      let filterData: unknown[] = [];
       if (typeof filterCallback === 'function') {
         filterData = filterCallback(lowerCaseValue, searchKey, listState.localList) || [];
       } else {
@@ -366,6 +368,7 @@ export default defineComponent({
 
     const clearInput = () => {
       curInputValue.value = '';
+      tagInputRef.value.style.width = `${INPUT_MIN_WIDTH}px`;
     };
 
     /**
@@ -393,16 +396,61 @@ export default defineComponent({
       referenceNode.parentNode.insertBefore(newNode, swap);
     };
 
+    const getChineseCharacters = (str: string) => {
+      // 正则表达式匹配所有中文字符
+      const regex = /[\u4e00-\u9fa5]/g;
+      return str.match(regex) || [];
+    };
+
+    const setTagInputOffsetWidth = (e: Event) => {
+      const value = (e?.target as HTMLInputElement).value || curInputValue.value;
+      const charLen = getCharLength(value);
+      const tagInputItemIndex = getTagInputItemSite();
+      const nodes = getSelectedTagNodes();
+      const chineseCharacters = getChineseCharacters(value);
+      // 获取输入框聚焦点距离两边的占据宽度的元素
+      const styles = getComputedStyle(tagInputItemRef.value);
+      const paddingSize =
+        Number.parseFloat(styles.getPropertyValue('padding-left')) +
+        Number.parseFloat(styles.getPropertyValue('padding-right'));
+      const borderSize =
+        Number.parseFloat(styles.getPropertyValue('border-left-width')) +
+        Number.parseFloat(styles.getPropertyValue('border-right-width'));
+      const marginSize =
+        Number.parseFloat(styles.getPropertyValue('margin-left')) +
+        Number.parseFloat(styles.getPropertyValue('margin-right'));
+      const stylesSize = marginSize + paddingSize + borderSize;
+      // 如果input焦点位置不是最后一个节点则需要计算输入内容宽度，防止两个tag之间空白区域较大
+      const isLastNode = nodes.length > 0 && tagInputItemIndex === nodes.length - 1;
+      tagInputRef.value.style.width = `${charLen * INPUT_MIN_WIDTH}px`;
+      if (!isLastNode) {
+        // 中文字符占两个字节，这里只需要计算一个字节间距
+        if (chineseCharacters.length) {
+          const noChineseLen = charLen - chineseCharacters.length;
+          tagInputRef.value.style.width =
+            chineseCharacters.length === value.length
+              ? `${noChineseLen * INPUT_MIN_WIDTH + stylesSize}px`
+              : `${charLen * (INPUT_MIN_WIDTH / 2) + stylesSize}px`;
+        } else {
+          // 如果不是中文，只是特殊字符或者英文和数字，需要缩短宽度避免间隙过大
+          tagInputRef.value.style.width = `${charLen * (INPUT_MIN_WIDTH / 2) + stylesSize}px`;
+        }
+      } else {
+        // 如果全是中文
+        if (chineseCharacters.length > 0 && chineseCharacters.length === value.length) {
+          tagInputRef.value.style.width = `${(charLen * INPUT_MIN_WIDTH) / 2}px`;
+        }
+      }
+    };
+
     const handleInput = (e?: Event) => {
       const { maxData, trigger, allowCreate } = props;
       if (maxData === -1 || maxData > tagList.value.length) {
         const { value } = e?.target ? (e.target as HTMLInputElement) : curInputValue;
         const charLen = getCharLength(value);
-
         if (charLen) {
           filterData(value);
-          // 如果按最小宽度计算，空白区域会比较大，这里先按一半宽度处理
-          tagInputRef.value.style.width = `${charLen * (INPUT_MIN_WIDTH / 2)}px`;
+          setTagInputOffsetWidth(e);
         } else {
           if (trigger === 'focus') {
             filterData();
@@ -594,7 +642,6 @@ export default defineComponent({
       const valLen = getCharLength(val);
       const tagInputItemIndex = getTagInputItemSite();
       const nodes = getSelectedTagNodes();
-
       switch (e.code) {
         case 'ArrowUp':
           e.preventDefault();
@@ -632,6 +679,7 @@ export default defineComponent({
             }
             swapElementPositions(tagInputItemRef.value, nodes[tagInputItemIndex - 1]);
             focusInputTrigger();
+            setTagInputOffsetWidth(e);
           }
           break;
         case 'ArrowRight':
@@ -643,6 +691,7 @@ export default defineComponent({
             }
             swapElementPositions(nodes[tagInputItemIndex + 1], tagInputItemRef.value);
             focusInputTrigger();
+            setTagInputOffsetWidth(e);
           }
           break;
         case 'Enter':
@@ -669,7 +718,7 @@ export default defineComponent({
       }
     };
 
-    const defaultPasteFn = (value: string): any[] => {
+    const defaultPasteFn = (value: string): unknown[] => {
       const target = [];
       const textArr = value.split(';');
       const regx = /^[a-zA-Z][a-zA-Z_]*/g;
@@ -746,8 +795,8 @@ export default defineComponent({
         return;
       }
       swapElementPositions(tagInputItemRef.value, e.currentTarget as HTMLElement, true);
-      tagInputRef.value.style.width = `${INPUT_MIN_WIDTH}px`;
       popoverProps.isShow && changePopoverOffset();
+      setTagInputOffsetWidth(e);
     };
 
     /**
@@ -921,7 +970,7 @@ export default defineComponent({
                   style={{ marginLeft: `${this.leftSpace}px` }}
                   class='tag-list'
                 >
-                  {this.selectedTagList.map((item: any, index: number) => {
+                  {this.selectedTagList.map((item: unknown, index: number) => {
                     const isOverflow =
                       this.localCollapseTags && this.overflowTagIndex && index >= this.overflowTagIndex;
                     return (
