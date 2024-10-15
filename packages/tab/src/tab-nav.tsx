@@ -186,7 +186,7 @@ export default defineComponent({
       handleTabChange(name: string) {
         props.tabChange(name);
       },
-      handleTabRemove(index: number, panel: Partial<ComponentInternalInstance>) {
+      handleTabRemove(index: number, panel: TabPanelProps) {
         props.tabRemove(index, panel);
       },
     };
