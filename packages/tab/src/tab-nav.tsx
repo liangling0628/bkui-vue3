@@ -97,8 +97,8 @@ export default defineComponent({
 
       const list = [];
       let hasFindActive = false;
-      const panels = props.panels as any[];
-      panels.filter((item: ComponentInternalInstance, index: number) => {
+      const panels = props.panels as unknown[];
+      panels.filter((item: Partial<ComponentInternalInstance>, index: number) => {
         if (!item.props) {
           return null;
         }
@@ -165,7 +165,7 @@ export default defineComponent({
         // $event.dataTransfer.setData('text/plain', index)
         props.tabDrag(index, $event);
       },
-      dragenter(index) {
+      dragenter(index: number) {
         // 缓存目标元素索引，方便添加样式
         if (distinctRoots(draggingEle.value, props.guid)) {
           dragenterIndex.value = index;
@@ -176,7 +176,7 @@ export default defineComponent({
         dragStartIndex.value = -1;
         draggingEle.value = null;
       },
-      drop(index, sortType) {
+      drop(index: number, sortType: string) {
         // 不是同一个tab，返回——暂时不支持跨tab拖动
         if (!distinctRoots(draggingEle.value, props.guid)) {
           return false;
