@@ -33,7 +33,6 @@ import { Funnel } from '@bkui-vue/icon';
 import Input from '@bkui-vue/input';
 import Popover from '@bkui-vue/popover';
 import { classes, PropTypes, RenderType } from '@bkui-vue/shared';
-import VirtualRender from '@bkui-vue/virtual-render';
 
 import { Column, IColumnType, IFilterShape } from '../props';
 
@@ -289,7 +288,7 @@ export default defineComponent({
 
     const renderFilterList = scope => {
       if (scope.length) {
-        return scope.map((item: { value: string; text: string }) => (
+        return scope.map((item: { value: string; text: string; tipKey?: string }) => (
           <div
             key={item.value}
             ref={filterPopoverRef}
@@ -337,8 +336,8 @@ export default defineComponent({
               </div>
               <BkCheckboxGroup class='content-list'>
                 <div
-                  class='content-items'
                   style={contentStyle.value}
+                  class='content-items'
                 >
                   {renderFilterList(localData.value)}
                 </div>
