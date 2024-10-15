@@ -205,7 +205,7 @@ export default defineComponent({
      */
     const scrollToSelected = () => {
       // 遍历每个级别的菜单
-      menus.list.forEach((menu, level) => {
+      menus.list.forEach((_menu, level) => {
         // 查找当前级别中选中的或已勾选的节点
         const selectedNode = document.querySelector(
           `.${resolveClassName('cascader-panel')}:nth-child(${level + 1}) .${resolveClassName('cascader-node.is-selected')}, .${resolveClassName('cascader-node.is-checked')}`,

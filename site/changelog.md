@@ -1,6 +1,16 @@
 ## 更新日志
 
 
+### 2.0.1-beta.76
+
+* **[feat]**:
+    - feat(cascader): 打开面板自动定位到选中位置
+    - fix: tab组件添加ts规范处理泛型警告
+    - feat(loading): 提供 directives 的暴露接口
+    - feature(tooltips): tooltips指令暴露 modifiers 属性
+    - fix: filter style fix
+
+
 ### 2.0.1-beta.75
 
 * **[feat]**:
