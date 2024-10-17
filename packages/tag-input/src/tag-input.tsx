@@ -33,6 +33,7 @@ import Loading, { BkLoadingSize } from '@bkui-vue/loading';
 import Popover from '@bkui-vue/popover';
 import { useFormItem } from '@bkui-vue/shared';
 import debounce from 'lodash/debounce';
+import trim from 'lodash/trim';
 
 import { getCharLength, INPUT_MIN_WIDTH, useFlatList, usePage, useTagsOverflow } from './common';
 import ListTagRender from './list-tag-render';
@@ -670,16 +671,13 @@ export default defineComponent({
       }
     };
 
-    const defaultPasteFn = (value: string): any[] => {
+    const defaultPasteFn = (value: string) => {
       const target = [];
       const textArr = value.split(';');
-      const regx = /^[a-zA-Z][a-zA-Z_]*/g;
 
       textArr.forEach(item => {
-        const matchValue = item.match(regx);
-        if (matchValue) {
-          const finalItem = matchValue.join('');
-          target.push({ [props.saveKey]: finalItem, [props.displayKey]: finalItem });
+        if (trim(item)) {
+          target.push({ [props.saveKey]: item, [props.displayKey]: item });
         }
       });
       return target;
@@ -688,15 +686,12 @@ export default defineComponent({
     const handlePaste = (e: ClipboardEvent) => {
       e.preventDefault();
 
-      // 单选禁止复制粘贴，防止粘贴多个tag
-      if (isSingleSelect.value) {
-        return false;
-      }
-
       const { maxData, saveKey, displayKey, pasteFn, allowCreate } = props;
       const value = e.clipboardData.getData('text');
+
       const valArr = pasteFn ? pasteFn(value) : defaultPasteFn(value);
       let tags = valArr.map((value: string) => value[saveKey]);
+
       if (tags.length) {
         const nodes = getSelectedTagNodes();
         const index = getTagInputItemSite();
@@ -736,6 +731,8 @@ export default defineComponent({
           focusInputTrigger();
         }
       }
+
+      clearInput();
     };
 
     /**
