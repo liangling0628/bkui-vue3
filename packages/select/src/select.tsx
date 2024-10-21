@@ -65,7 +65,7 @@ export default defineComponent({
     size: PropTypes.size().def(SizeEnum.DEFAULT),
     clearable: PropTypes.bool.def(true),
     loading: PropTypes.bool.def(false),
-    filterable: PropTypes.bool.def(true), // 是否支持搜索
+    filterable: PropTypes.bool.def(false), // 是否支持搜索
     remoteMethod: PropTypes.func,
     scrollHeight: PropTypes.number.def(204), // 最大高度
     minHeight: PropTypes.number, // 最小高度
@@ -977,6 +977,7 @@ export default defineComponent({
             collapseTags={this.isCollapseTags}
             disabled={this.isDisabled}
             filterable={this.isInput}
+            isMultiple={this.multiple}
             placeholder={this.localPlaceholder}
             selected={this.selected}
             tagTheme={this.tagTheme}
