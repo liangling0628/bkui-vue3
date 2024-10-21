@@ -977,7 +977,6 @@ export default defineComponent({
             collapseTags={this.isCollapseTags}
             disabled={this.isDisabled}
             filterable={this.isInput}
-            isMultiple={this.multiple}
             placeholder={this.localPlaceholder}
             selected={this.selected}
             tagTheme={this.tagTheme}
