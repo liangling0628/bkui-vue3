@@ -1,6 +1,12 @@
 ## 更新日志
 
 
+### 2.0.1-beta.78
+
+* **[feat]**:
+    - bugfix(infobox): 多个 infobox 切换时内部状态需要重置
+
+
 ### 2.0.1-beta.77
 
 * **[feat]**:
