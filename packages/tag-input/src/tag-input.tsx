@@ -370,6 +370,7 @@ export default defineComponent({
 
     const clearInput = () => {
       curInputValue.value = '';
+      tagInputRef.value.style.width = `${INPUT_MIN_WIDTH}px`;
     };
 
     /**
@@ -407,7 +408,9 @@ export default defineComponent({
         if (charLen) {
           filterData(value);
           nextTick(() => {
-            tagInputRef.value.style.width = `${inputValueRef.value!.getBoundingClientRect().width}px`;
+            // getBoundingClientRect获取宽度在中文输入法输入的时候会存在为0的情况，导致不显示输入的内容，按回车以后光标在最前面，所以需要提供默认值
+            const tagInputWidth = inputValueRef.value!.getBoundingClientRect().width || charLen * INPUT_MIN_WIDTH;
+            tagInputRef.value.style.width = `${tagInputWidth}px`;
           });
         } else {
           if (trigger === 'focus') {
