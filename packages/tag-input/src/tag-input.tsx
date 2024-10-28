@@ -129,14 +129,14 @@ export default defineComponent({
           const curGroupId = (item.group as { groupId?: number | string })?.groupId;
           const curGroupName = (item.group as { groupName?: string })?.groupName;
           item.__index__ = index;
-          if (!groupMap[curGroupId]) {
+          if (curGroupId && !groupMap[curGroupId]) {
             groupMap[curGroupId] = {
               id: curGroupId,
               name: curGroupName,
               children: [],
             };
           }
-          groupMap[curGroupId].children.push(item);
+          groupMap?.[curGroupId]?.children.push(item);
         });
         return Object.keys(groupMap).map((key: string) => groupMap[key]);
       }
