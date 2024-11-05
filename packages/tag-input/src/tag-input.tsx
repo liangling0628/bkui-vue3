@@ -125,16 +125,18 @@ export default defineComponent({
     const renderList = computed(() => {
       if (props.useGroup) {
         const groupMap = {};
-        pageState.curPageList.forEach((item: any, index: number) => {
+        pageState.curPageList.forEach((item: Record<string, unknown>, index: number) => {
+          const curGroupId = (item.group as { groupId?: number | string })?.groupId;
+          const curGroupName = (item.group as { groupName?: string })?.groupName;
           item.__index__ = index;
-          if (!groupMap[item.group.groupId]) {
-            groupMap[item.group.groupId] = {
-              id: item.group.groupId,
-              name: item.group.groupName,
+          if (curGroupId && !groupMap[curGroupId]) {
+            groupMap[curGroupId] = {
+              id: curGroupId,
+              name: curGroupName,
               children: [],
             };
           }
-          groupMap[item.group.groupId].children.push(item);
+          groupMap?.[curGroupId]?.children.push(item);
         });
         return Object.keys(groupMap).map((key: string) => groupMap[key]);
       }
@@ -322,7 +324,7 @@ export default defineComponent({
         initPage(listState.localList);
         return;
       }
-      let filterData: any[] = [];
+      let filterData: unknown[] = [];
       if (typeof filterCallback === 'function') {
         filterData = filterCallback(lowerCaseValue, searchKey, listState.localList) || [];
       } else {
@@ -368,6 +370,7 @@ export default defineComponent({
 
     const clearInput = () => {
       curInputValue.value = '';
+      tagInputRef.value.style.width = `${INPUT_MIN_WIDTH}px`;
     };
 
     /**
@@ -379,7 +382,8 @@ export default defineComponent({
         return 0;
       }
       const childNodes = getSelectedTagNodes();
-      const index = childNodes.findIndex(({ id }) => id === 'tagInputItem');
+      // 聚焦的时候会存在空节点，导致backspace需要点击多次才能删除tag
+      const index = childNodes.filter(item => item.className !== '').findIndex(({ id }) => id === 'tagInputItem');
       return index >= 0 ? index : 0;
     };
 
@@ -404,7 +408,9 @@ export default defineComponent({
         if (charLen) {
           filterData(value);
           nextTick(() => {
-            tagInputRef.value.style.width = `${inputValueRef.value!.getBoundingClientRect().width}px`;
+            // getBoundingClientRect获取宽度在中文输入法输入的时候会存在为0的情况，导致不显示输入的内容，按回车以后光标在最前面，所以需要提供默认值
+            const tagInputWidth = inputValueRef.value!.getBoundingClientRect().width || charLen * INPUT_MIN_WIDTH;
+            tagInputRef.value.style.width = `${tagInputWidth}px`;
           });
         } else {
           if (trigger === 'focus') {
@@ -569,15 +575,13 @@ export default defineComponent({
       swapElementPositions(tagInputItemRef.value, nodes[index - 1]);
       listState.selectedTagList.splice(index - 1, 1);
       focusInputTrigger();
-
-      const isExistInit = saveKeyMap.value[target[props.saveKey]];
+      const isExistInit = target && saveKeyMap.value[target[props.saveKey]];
 
       // 将删除的项加入加列表
       if (((props.allowCreate && isExistInit) || !props.allowCreate) && !isSingleSelect.value) {
         listState.localList.push(target);
       }
-
-      tagInputRef.value = `${INPUT_MIN_WIDTH}px`;
+      tagInputRef.value.style.width = `${INPUT_MIN_WIDTH}px`;
       handleChange('remove');
     };
 
@@ -920,7 +924,7 @@ export default defineComponent({
                   style={{ marginLeft: `${this.leftSpace}px` }}
                   class='tag-list'
                 >
-                  {this.selectedTagList.map((item: any, index: number) => {
+                  {this.selectedTagList.map((item: unknown, index: number) => {
                     const isOverflow =
                       this.localCollapseTags && this.overflowTagIndex && index >= this.overflowTagIndex;
                     return (
