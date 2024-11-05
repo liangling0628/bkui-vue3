@@ -217,11 +217,16 @@ export default defineComponent({
     );
     const groupsMap = ref<Map<string, GroupInstanceType>>(new Map());
     const selected = ref<ISelected[]>([]);
-    const selectedMap = computed<Record<PropertyKey, string>>(() =>
-      selected.value.reduce((pre, item) => {
-        pre[item.value] = item.label;
-        return pre;
-      }, {}),
+    const selectedCacheMap = computed(() =>
+      selected.value.reduce<Record<PropertyKey, number | string>>(
+        (pre, item) => {
+          pre[item.value] = item.label;
+          return pre;
+        },
+        {
+          [`${allOptionId.value}`]: t.value.all,
+        },
+      ),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const activeOptionValue = ref<any>(); // 当前悬浮的option
@@ -479,6 +484,8 @@ export default defineComponent({
 
       emit('update:modelValue', val, modelValue.value);
       emit('change', val, modelValue.value);
+      // 重置Selected 以model-value为主
+      handleSetSelectedData();
     };
     // 派发toggle事件
     const handleTogglePopover = () => {
@@ -670,7 +677,7 @@ export default defineComponent({
         emit('tag-remove', val);
       }
     };
-    // options存在 > 上一次选择的label > 当前值
+    // 优先级: option name属性 > list模式 > 上一次选择的label > 当前值
     const handleGetLabelByValue = (value: PropertyKey) => {
       // 处理options value为对象类型，引用类型变更后，回显不对问题
       let tmpValue = value;
@@ -685,7 +692,7 @@ export default defineComponent({
       return (
         optionsMap.value?.get(tmpValue)?.optionName ||
         listMap.value[tmpValue] ||
-        selectedMap.value[tmpValue] ||
+        selectedCacheMap.value[tmpValue] ||
         tmpValue
       );
     };
