@@ -1,6 +1,13 @@
 ## 更新日志
 
 
+### 2.0.1-beta.79
+
+* **[feat]**:
+    - bugfix(select): 修复 select下拉框属性filterable里文档默认取值false，但是实际是开启搜索框的
+    - bugfix(select): 修复全部交互回显不正确问题
+
+
 ### 2.0.1-beta.78
 
 * **[feat]**:
