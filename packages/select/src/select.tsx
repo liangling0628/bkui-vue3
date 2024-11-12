@@ -109,6 +109,7 @@ export default defineComponent({
       type: String as PropType<'default' | 'manual'>,
       default: 'default',
     }, // content显示和隐藏方式
+    disableScrollToSelectedOption: PropTypes.bool.def(false), // 是否禁用滚动到选中option的功能
   },
   emits: [
     'update:modelValue',
@@ -160,6 +161,7 @@ export default defineComponent({
       highlightKeyword,
       disableFocusBehavior,
       trigger,
+      disableScrollToSelectedOption,
     } = toRefs(props);
 
     const virtualRenderRef = ref(null);
@@ -408,11 +410,10 @@ export default defineComponent({
     });
     // 滚动到当前选中的options中
     const scrollActiveOptionIntoView = () => {
-      if (isEnableVirtualRender.value) return;
+      if (isEnableVirtualRender.value || disableScrollToSelectedOption.value) return;
       const optionsDom = contentRef.value?.querySelectorAll?.('.is-selected');
       optionsDom?.[0]?.scrollIntoView({
         block: 'center',
-        // behavior: 'smooth',
       });
     };
 
