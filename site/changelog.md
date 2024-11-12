@@ -5,6 +5,7 @@
 
 * **[feat]**:
     - feat(select): 展开下拉项时支持不自动定位到当前选中项
+    - feat(search-select): 修复 name 设置固定宽度文字会被遮挡问题
 
 
 ### 2.0.1-beta.79
