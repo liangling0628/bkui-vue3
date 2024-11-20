@@ -212,6 +212,7 @@ export default defineComponent({
         wrapRef.value.querySelector(`.${resolveClassName('search-select-container')}`) as HTMLElement,
         debounceResize,
       );
+      debounceResize();
     });
     onBeforeUnmount(() => {
       removeListener(
@@ -353,7 +354,7 @@ export default defineComponent({
     };
   },
   render() {
-    const maxHeight = `${this.isFocus ? this.maxHeight : INPUT_MIN_HEIGHT}px`;
+    const maxHeight = `${this.isFocus ? this.maxHeight : INPUT_MIN_HEIGHT}`.replace('px', '');
     const showCondition = !!this.selectedList.length && this.selectedList.slice(-1)[0].type !== 'condition';
     const menuSlots = Object.assign(
       {},
